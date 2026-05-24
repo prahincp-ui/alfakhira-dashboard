@@ -2115,6 +2115,10 @@ async function loadOverview(){
     const totInn = rows.reduce((s,r)=>s+parseFloat(r.income_innovo),0);
     const totBas = rows.reduce((s,r)=>s+parseFloat(r.income_basatin),0);
 
+    if(typeof Chart === 'undefined'){ 
+      document.getElementById('dbStatus').textContent = '⬤ Chart.js not loaded'; 
+      return; 
+    }
     if(trendChart) trendChart.destroy();
     trendChart = new Chart(document.getElementById('tc'),{
       type:'bar',
@@ -2630,6 +2634,13 @@ async function parseAndSave(){
 
 // ── INIT ──
 window.addEventListener('load', async ()=>{
+  // Wait for Chart.js to be available (max 5 seconds)
+  let waited = 0;
+  while(typeof Chart === 'undefined' && waited < 5000){
+    await new Promise(r => setTimeout(r, 100));
+    waited += 100;
+  }
+  if(typeof Chart === 'undefined') console.warn('Chart.js failed to load after 5s');
   await seedIfEmpty();
   await loadOverview();
 });
@@ -2815,7 +2826,11 @@ async function loadPerf(){
     }
 
     const workers = parseWorkerContributions(d.whatsapp_raw, d.total_workers);
-    const oh = r2(1100 / d.total_workers);
+    // Correct overhead for this specific date
+    const _pc = dateStr >= '2026-01-01' && dateStr <= '2026-03-31';
+    const _pm = dateStr >= '2026-03-08' && dateStr <= '2026-04-30';
+    const _perfOH = parseFloat((1100 + (_pc ? 169.23 : 0) + (_pm ? -192.31 : 0)).toFixed(2));
+    const oh = r2(_perfOH / d.total_workers);
     const stars = workers.filter(w=>w.contribution>=200).length;
     const good  = workers.filter(w=>w.contribution>=0&&w.contribution<200).length;
     const marg  = workers.filter(w=>w.contribution<0&&w.contribution>=-100).length;
@@ -2827,12 +2842,12 @@ async function loadPerf(){
           <div>
             <div class="sl">${fmt_date(dateStr)} — Individual Performance Analysis</div>
             <div class="sv p" style="font-size:22px">${d.total_workers} workers on site</div>
-            <div class="ss">Overhead burden: AED 1,100 ÷ ${d.total_workers} = <strong style="color:#6ecf8a">AED ${oh.toFixed(2)}/person</strong></div>
+            <div class="ss">Overhead burden: AED ${_perfOH.toFixed(2)} ÷ ${d.total_workers} = <strong style="color:#6ecf8a">AED ${oh.toFixed(2)}/person</strong></div>
           </div>
           <div style="text-align:right">
             <div class="sl">If 5 more workers (${d.total_workers+5}p)</div>
-            <div style="font-family:'Fraunces',serif;font-size:18px;color:#6ecf8a">AED ${(1100/(d.total_workers+5)).toFixed(2)}/person</div>
-            <div class="ss">Save AED ${(oh - 1100/(d.total_workers+5)).toFixed(2)}/person overhead</div>
+            <div style="font-family:'Fraunces',serif;font-size:18px;color:#6ecf8a">AED ${(_perfOH/(d.total_workers+5)).toFixed(2)}/person</div>
+            <div class="ss">Save AED ${(oh - _perfOH/(d.total_workers+5)).toFixed(2)}/person overhead</div>
           </div>
         </div>
       </div>
@@ -2964,10 +2979,13 @@ async function loadPerf(){
       </div>
     `;
 
-    // Draw chart
+    // Draw chart — wait for canvas to be in DOM and Chart.js ready
     setTimeout(()=>{
       const ctx = document.getElementById('perfChart');
-      if(!ctx) return;
+      if(!ctx || typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded or canvas missing');
+        return;
+      }
       new Chart(ctx,{
         type:'bar',
         data:{
