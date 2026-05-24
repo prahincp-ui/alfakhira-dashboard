@@ -4,8 +4,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Al Fakhira — Operations Dashboard</title>
-<link href="./Al Fakhira — Operations Dashboard_files/css2" rel="stylesheet">
-<script src="./Al Fakhira — Operations Dashboard_files/chart.umd.js.download"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1522,7 +1522,7 @@ tr:hover td{background:var(--surface2)}
         </div>
         <div class="card">
           <div class="chd">Costs &amp; Result</div>
-          <div class="plr ind"><span>Fixed overhead</span><span>AED 1,100.00</span></div>
+          <div class="plr ind"><span>Base overhead (staff + accom + vehicle + company)</span><span>AED 1,100.00</span></div>
           <div class="plr ind"><span>Core salary (7p present)</span><span>≈ AED 329.00</span></div>
           <div class="plr ind"><span>Overtime (4h × AED 3.8)</span><span>AED 15.20</span></div>
           <div class="plr ind"><span>Daily wage (2p)</span><span>≈ AED 208</span></div>
@@ -1702,56 +1702,142 @@ tr:hover td{background:var(--surface2)}
 
 <!-- ══════════ OVERHEAD ══════════ -->
 <div id="oh" class="sec active">
+
+  <!-- KPI SUMMARY CARDS -->
   <div class="g4" style="margin-bottom:14px">
-    <div class="kpi gold"><div class="kl">Fixed Overhead/Day</div><div class="kv">AED 1,100</div><div class="ks">Same every working day</div></div>
-    <div class="kpi"><div class="kl">Al Fakhira Annual</div><div class="kv">AED 20,770</div><div class="ks">License + office + insurance</div></div>
-    <div class="kpi"><div class="kl">Realspot Annual</div><div class="kv">AED 19,900</div><div class="ks">License + sponsor + office</div></div>
-    <div class="kpi"><div class="kl">Gratuity (annual)</div><div class="kv">AED 14,470</div><div class="ks">13 employees · 21 days/yr</div></div>
+    <div class="kpi gold"><div class="kl">Staff Overhead/Day</div><div class="kv">AED 296.16</div><div class="ks">Madassar + Yadav · fixed</div></div>
+    <div class="kpi teal"><div class="kl">Accommodation/Day</div><div class="kv">AED 211.54</div><div class="ks">3 rooms · rent only · fixed</div></div>
+    <div class="kpi blue"><div class="kl">Vehicle Overhead/Day</div><div class="kv">AED 307.31</div><div class="ks">Car rent + petrol + bus · variable</div></div>
+    <div class="kpi"><div class="kl">Company Overhead/Day</div><div class="kv">AED 286.35</div><div class="ks">License, visa, gratuity · fixed</div></div>
   </div>
-  <div class="g2">
-    <div class="card">
-      <div class="chd">Fixed Daily Overhead = AED 1,100/day</div>
-      <div class="pls">Overhead Staff Salaries</div>
-      <div class="plr ind"><span>Madassar — AED 5,000 ÷ 26</span><span>AED 192.31</span></div>
-      <div class="plr ind"><span>Yadav — AED 2,700 ÷ 26</span><span>AED 103.85</span></div>
-      <div class="pls">Accommodation (3 Rooms)</div>
-      <div class="plr ind"><span>Room 1 AED 1,100 ÷ 26</span><span>AED 42.31</span></div>
-      <div class="plr ind"><span>Room 2 AED 2,900 ÷ 26</span><span>AED 111.54</span></div>
-      <div class="plr ind"><span>Room 3 AED 1,500 ÷ 26</span><span>AED 57.69</span></div>
-      <div class="pls">Vehicles</div>
-      <div class="plr ind"><span>Rented car AED 1,750 ÷ 26</span><span>AED 67.31</span></div>
-      <div class="plr ind"><span>Small car petrol (actual)</span><span>AED 140.00</span></div>
-      <div class="plr ind"><span>Bus petrol + running (actual)</span><span>AED 100.00</span></div>
-      <div class="pls">License &amp; Admin (annualised)</div>
-      <div class="plr ind"><span>Al Fakhira license (AED 20,770/yr)</span><span>AED 66.57</span></div>
-      <div class="plr ind"><span>Realspot license (AED 19,900/yr)</span><span>AED 63.78</span></div>
-      <div class="pls">Employee Provisions</div>
-      <div class="plr ind"><span>Worker visa 12 emp AED 5,700 per 2yr</span><span>AED 109.62</span></div>
-      <div class="plr ind"><span>Gratuity provision (AED 14,470/yr)</span><span>AED 46.38</span></div>
-      <div class="div"></div>
-      <div class="plr tot"><span>TOTAL → rounded AED 1,100/day</span><span>AED 1,101.36</span></div>
+
+  <!-- COASTER ALERT BANNER (Jan–Mar 2026) -->
+  <div class="alert warn" style="margin-bottom:14px">
+    <div>⚠ <strong>Coaster overhead Jan–Mar 2026 (variable):</strong> AED 7,000/mo ÷ 26 = +AED 269.23/day · minus car fuel -AED 100.00 = <strong>net +AED 169.23/day</strong> added to vehicle overhead for those months. Apr 2026 onwards: coaster removed, bus running cost AED 100/day applies.</div>
+  </div>
+
+  <!-- MAIN BREAKDOWN GRID -->
+  <div class="g2" style="margin-bottom:14px">
+
+    <!-- LEFT COLUMN: 4 OVERHEAD CATEGORIES -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <!-- 1. STAFF OVERHEAD -->
+      <div class="card">
+        <div class="chd">Staff Overhead — Fixed</div>
+        <div class="alert info" style="margin-bottom:10px"><div>Management salaries · paid every working day regardless of site activity</div></div>
+        <div class="plr ind"><span>Madassar — Site Manager / Partner 20% (AED 5,000 ÷ 26)</span><span>AED 192.31</span></div>
+        <div class="plr ind"><span>Yadav — Administration (AED 2,700 ÷ 26)</span><span>AED 103.85</span></div>
+        <div class="div"></div>
+        <div class="plr tot"><span>Staff overhead/day</span><span>AED 296.16</span></div>
+        <div class="alert warn" style="margin-top:10px;margin-bottom:0"><div>⚠ Madassar on leave Mar 8 – Apr 30: his AED 192.31/day removed from overhead during that period.</div></div>
+      </div>
+
+      <!-- 2. ACCOMMODATION OVERHEAD -->
+      <div class="card">
+        <div class="chd">Accommodation Overhead — Fixed</div>
+        <div class="alert info" style="margin-bottom:10px"><div>Room rent only · 3 rented rooms · monthly provision ÷ 26 working days</div></div>
+        <div class="plr ind"><span>Room 1 — AED 1,100/month ÷ 26</span><span>AED 42.31</span></div>
+        <div class="plr ind"><span>Room 2 — AED 2,900/month ÷ 26</span><span>AED 111.54</span></div>
+        <div class="plr ind"><span>Room 3 — AED 1,500/month ÷ 26</span><span>AED 57.69</span></div>
+        <div class="div"></div>
+        <div class="plr tot"><span>Accommodation overhead/day</span><span>AED 211.54</span></div>
+      </div>
+
+      <!-- 3. VEHICLE & TRANSPORT OVERHEAD -->
+      <div class="card">
+        <div class="chd">Vehicle &amp; Transport Overhead — Variable</div>
+        <div class="alert info" style="margin-bottom:10px"><div>Car rent + fuel costs · actual spend · Apr 2026 onwards (no coaster)</div></div>
+        <div class="plr ind"><span>Rented car — AED 1,750/month ÷ 26</span><span>AED 67.31</span></div>
+        <div class="plr ind"><span>Small car petrol (actual spend)</span><span>AED 140.00</span></div>
+        <div class="plr ind"><span>Bus petrol + running costs (actual)</span><span>AED 100.00</span></div>
+        <div class="div"></div>
+        <div class="plr tot"><span>Vehicle overhead/day (Apr 2026+)</span><span>AED 307.31</span></div>
+        <div class="pls">Coaster Period — Jan to Mar 2026</div>
+        <div class="plr ind"><span>Coaster hire — AED 7,000/month ÷ 26</span><span>AED 269.23</span></div>
+        <div class="plr ind"><span>Car fuel removed (coaster covered transport)</span><span style="color:var(--green)">−AED 100.00</span></div>
+        <div class="plr ind"><span>Net coaster adjustment Jan–Mar 2026</span><span style="color:var(--amber)">+AED 169.23/day</span></div>
+        <div class="plr tot rd"><span>Vehicle overhead/day (Jan–Mar 2026)</span><span>AED 476.54</span></div>
+      </div>
+
+      <!-- 4. COMPANY OVERHEAD -->
+      <div class="card">
+        <div class="chd">Company Overhead — Fixed</div>
+        <div class="alert info" style="margin-bottom:10px"><div>License-related expenses only · trade registration, legal provisions, visa &amp; gratuity · both companies annualised ÷ 260 working days</div></div>
+        <div class="pls">Al Fakhira Gen Cont LLC — License &amp; Legal</div>
+        <div class="plr ind"><span>Trade license renewal (AED 7,370/yr ÷ 260)</span><span>AED 28.35</span></div>
+        <div class="plr ind"><span>Company insurance (AED 6,500/yr ÷ 260)</span><span>AED 25.00</span></div>
+        <div class="plr ind"><span>Immigration card (AED 600/yr ÷ 260)</span><span>AED 2.31</span></div>
+        <div class="plr ind"><span>E-channel fees (AED 1,300/yr ÷ 260)</span><span>AED 5.00</span></div>
+        <div class="plr ind"><span>Office — Al Fakhira (AED 5,000/yr ÷ 260)</span><span>AED 19.23</span></div>
+        <div class="pls">Realspot Gen Maintenance — License &amp; Legal</div>
+        <div class="plr ind"><span>Trade license renewal (AED 7,000/yr ÷ 260)</span><span>AED 26.92</span></div>
+        <div class="plr ind"><span>Sponsor fee (AED 7,000/yr ÷ 260)</span><span>AED 26.92</span></div>
+        <div class="plr ind"><span>Immigration card (AED 600/yr ÷ 260)</span><span>AED 2.31</span></div>
+        <div class="plr ind"><span>E-channel fees (AED 1,300/yr ÷ 260)</span><span>AED 5.00</span></div>
+        <div class="plr ind"><span>Office — Realspot (AED 4,000/yr ÷ 260)</span><span>AED 15.38</span></div>
+        <div class="pls">Employee Provisions (annualised)</div>
+        <div class="plr ind"><span>Worker visa — 12 emp × AED 5,700 ÷ 2yr ÷ 260</span><span>AED 131.54</span></div>
+        <div class="plr ind"><span>Gratuity provision — AED 14,470/yr ÷ 260</span><span>AED 55.65</span></div>
+        <div class="div"></div>
+        <div class="plr tot"><span>Company overhead/day</span><span>AED 343.61</span></div>
+      </div>
+
     </div>
-    <div class="card">
-      <div class="chd">Annual License — Both Companies</div>
-      <div style="font-size:11px;font-weight:500;margin-bottom:10px">Al Fakhira Gen Cont LLC — AED 20,770/year</div>
-      <div class="plr ind"><span>Trade license renewal</span><span>AED 7,370</span></div>
-      <div class="plr ind"><span>Office (annual)</span><span>AED 5,000</span></div>
-      <div class="plr ind"><span>Immigration card</span><span>AED 600</span></div>
-      <div class="plr ind"><span>E-channel fees</span><span>AED 1,300</span></div>
-      <div class="plr ind"><span>Company insurance</span><span>AED 6,500</span></div>
-      <div class="div"></div>
-      <div style="font-size:11px;font-weight:500;margin-bottom:10px">Realspot Gen Maintenance — AED 19,900/year</div>
-      <div class="plr ind"><span>Trade license renewal</span><span>AED 7,000</span></div>
-      <div class="plr ind"><span>Office rent</span><span>AED 4,000</span></div>
-      <div class="plr ind"><span>Sponsor fee</span><span>AED 7,000</span></div>
-      <div class="plr ind"><span>Immigration card</span><span>AED 600</span></div>
-      <div class="plr ind"><span>E-channel fees</span><span>AED 1,300</span></div>
-      <div class="div"></div>
-      <div class="chd">Worker Visa Cost</div>
-      <div class="plr ind"><span>Per employee per 2-year cycle</span><span>AED 5,700</span></div>
-      <div class="plr ind"><span>Employees covered</span><span>12 people</span></div>
-      <div class="plr ind"><span>Annual provision (12 × 5,700 ÷ 2)</span><span>AED 34,200/yr</span></div>
-      <div class="plr ind"><span>Per working day</span><span>AED 109.62</span></div>
+
+    <!-- RIGHT COLUMN: TOTALS + ANNUAL DETAIL -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <!-- DAILY OVERHEAD TOTAL SUMMARY -->
+      <div class="card">
+        <div class="chd">Daily Overhead Total — By Period</div>
+
+        <div class="pls">Base (Apr 2026 onwards — standard)</div>
+        <div class="plr ind"><span>Staff overhead</span><span>AED 296.16</span></div>
+        <div class="plr ind"><span>Accommodation overhead</span><span>AED 211.54</span></div>
+        <div class="plr ind"><span>Vehicle &amp; transport overhead</span><span>AED 307.31</span></div>
+        <div class="plr ind"><span>Company overhead</span><span>AED 286.35</span></div>
+        <div class="plr tot"><span>Total overhead/day (Apr 2026+)</span><span>AED 1,101.36</span></div>
+
+        <div class="pls">Jan–Mar 2026 (+ coaster, no bus fuel)</div>
+        <div class="plr ind"><span>Base overhead</span><span>AED 1,101.36</span></div>
+        <div class="plr ind"><span>Coaster net adjustment</span><span style="color:var(--amber)">+AED 169.23</span></div>
+        <div class="plr tot rd"><span>Total overhead/day (Jan–Mar 2026)</span><span>AED 1,270.59</span></div>
+
+        <div class="pls">Mar 8 – Apr 30 2026 (Madassar on leave)</div>
+        <div class="plr ind"><span>Base overhead</span><span>AED 1,101.36</span></div>
+        <div class="plr ind"><span>Madassar salary removed</span><span style="color:var(--green)">−AED 192.31</span></div>
+        <div class="plr ind"><span>+ coaster net (Mar only)</span><span style="color:var(--amber)">+AED 169.23 (Mar)</span></div>
+        <div class="plr tot"><span>Effective range Mar 8–Apr 30</span><span>AED 908 – AED 1,078</span></div>
+      </div>
+
+      <!-- ANNUAL LICENSE DETAIL -->
+      <div class="card">
+        <div class="chd">Annual License — Both Companies</div>
+        <div style="font-size:11px;font-weight:500;margin-bottom:10px">Al Fakhira Gen Cont LLC — AED 20,770/year</div>
+        <div class="plr ind"><span>Trade license renewal</span><span>AED 7,370</span></div>
+        <div class="plr ind"><span>Office (annual)</span><span>AED 5,000</span></div>
+        <div class="plr ind"><span>Immigration card</span><span>AED 600</span></div>
+        <div class="plr ind"><span>E-channel fees</span><span>AED 1,300</span></div>
+        <div class="plr ind"><span>Company insurance</span><span>AED 6,500</span></div>
+        <div class="div"></div>
+        <div style="font-size:11px;font-weight:500;margin-bottom:10px">Realspot Gen Maintenance — AED 19,900/year</div>
+        <div class="plr ind"><span>Trade license renewal</span><span>AED 7,000</span></div>
+        <div class="plr ind"><span>Office rent</span><span>AED 4,000</span></div>
+        <div class="plr ind"><span>Sponsor fee</span><span>AED 7,000</span></div>
+        <div class="plr ind"><span>Immigration card</span><span>AED 600</span></div>
+        <div class="plr ind"><span>E-channel fees</span><span>AED 1,300</span></div>
+        <div class="div"></div>
+        <div class="chd">Worker Visa &amp; Gratuity Provisions</div>
+        <div class="plr ind"><span>Per employee per 2-year cycle</span><span>AED 5,700</span></div>
+        <div class="plr ind"><span>Employees covered</span><span>12 people</span></div>
+        <div class="plr ind"><span>Annual provision (12 × 5,700 ÷ 2)</span><span>AED 34,200/yr</span></div>
+        <div class="plr ind"><span>Per working day</span><span>AED 131.54</span></div>
+        <div class="div"></div>
+        <div class="plr ind"><span>Gratuity provision (AED 14,470/yr)</span><span>AED 14,470/yr</span></div>
+        <div class="plr ind"><span>Per working day (÷ 260)</span><span>AED 55.65</span></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1806,6 +1892,8 @@ Taile plaza =30.Square m)13.33H
         <button class="btn gld" onclick="parseAndSave()">Calculate &amp; Save to Database</button>
         <button class="btn" onclick="document.getElementById(&#39;wai&#39;).value=&#39;&#39;;document.getElementById(&#39;pr2&#39;).innerHTML=&#39;&#39;;document.getElementById(&#39;pr2&#39;).style.display=&#39;none&#39;">Clear</button>
         <button class="btn" onclick="testDB()" style="border-color:var(--blue-mid);color:var(--blue)">Test DB Connection</button>
+        <button class="btn" onclick="patchOverheads()" style="border-color:var(--amber-mid);color:var(--amber);font-weight:600">⚠ Patch Historical Overheads</button>
+        <button class="btn" onclick="diagnoseDB()" style="border-color:var(--red-mid);color:var(--red)">Diagnose DB</button>
         <span id="saveStatus" style="font-size:11px;color:var(--ink3)"></span>
       </div>
     </div>
@@ -2046,8 +2134,13 @@ async function loadOverview(){
 
   } catch(e){
     console.error(e);
-    document.getElementById('ovSummary').innerHTML = `<div style="padding:16px;color:#f08080">Database error: ${e.message}</div>`;
+    document.getElementById('ovSummary').innerHTML = `
+      <div style="padding:16px;color:#f08080;line-height:1.8">
+        <strong>Database error:</strong> ${e.message}<br>
+        <span style="font-size:11px;color:var(--ink3)">Open browser console (F12) for full details. Try clicking "Test DB Connection" in Daily Input tab.</span>
+      </div>`;
     document.getElementById('dbStatus').textContent = '⬤ DB Error';
+    console.error('loadOverview error:', e);
   }
 }
 
@@ -2125,6 +2218,17 @@ async function loadDayDetail(dateStr){
     const pi = tg>0?((parseFloat(d.income_innovo)/tg)*100).toFixed(1):0;
     const pb = tg>0?((parseFloat(d.income_basatin)/tg)*100).toFixed(1):0;
 
+    // Recompute exact base overhead for this date (mirrors parser logic)
+    const _hasCoaster = dateStr >= '2026-01-01' && dateStr <= '2026-03-31';
+    const _coasterNet = _hasCoaster ? 169.23 : 0;
+    const _madassarLeave = dateStr >= '2026-03-08' && dateStr <= '2026-04-30';
+    const _baseOverhead = parseFloat(((_madassarLeave ? (1100 - 192.31) : 1100) + _coasterNet).toFixed(2));
+    let _ohLabel = 'Base overhead';
+    const _ohNotes = [];
+    if(_hasCoaster) _ohNotes.push('+ coaster AED\u00a0169.23');
+    if(_madassarLeave) _ohNotes.push('\u2212 Madassar AED\u00a0192.31');
+    if(_ohNotes.length) _ohLabel += ' (' + _ohNotes.join(', ') + ')';
+
     // Load work items if any
     let itemsHTML = '';
     try {
@@ -2182,7 +2286,7 @@ async function loadDayDetail(dateStr){
         </div>
         <div class="card">
           <div class="chd">Costs &amp; Result</div>
-          <div class="plr ind"><span>Fixed overhead</span><span>AED 1,100.00</span></div>
+          <div class="plr ind"><span>${_ohLabel}</span><span>AED ${_baseOverhead.toFixed(2)}</span></div>
           <div class="plr ind"><span>Core salary (${d.core_present}p present)</span><span>≈ AED ${(d.core_present*47).toFixed(2)}</span></div>
           <div class="plr ind"><span>Overtime (${d.ot_hours}h × AED 3.8)</span><span>AED ${(d.ot_hours*3.8).toFixed(2)}</span></div>
           <div class="plr ind"><span>Daily wage (${d.dw_present}p)</span><span>≈ AED ${(d.dw_present*104).toFixed(0)}</span></div>
@@ -3264,6 +3368,180 @@ function show(id,btn){
   if(id==='dl') loadDailyList();
   if(id==='perf') populatePerfDates();
   if(id==='inv') loadInvoice();
+}
+
+
+// ── PATCH HISTORICAL OVERHEADS ──
+// Fixes all DB records: replaces flat AED 1,100 overhead with correct period-based overhead
+// Jan–Mar 2026: +AED 169.23 coaster net
+// Mar 8–Apr 30 2026: −AED 192.31 Madassar leave
+// Both: combined adjustments
+async function patchOverheads(){
+  const status = document.getElementById('saveStatus');
+  const res = document.getElementById('pr2');
+  res.style.display = 'block';
+
+  if(!confirm('This will recalculate and overwrite total_cost and net_pl for ALL historical records based on correct overhead per period.\n\nJan–Mar 2026: +AED 169.23/day (coaster)\nMar 8–Apr 30: −AED 192.31/day (Madassar leave)\n\nProceed?')) return;
+
+  status.textContent = '⏳ Fetching all records...';
+  let html = '<div class="card" style="margin-top:12px"><div class="chd">Overhead Patch — Historical P&L Fix</div>';
+
+  try {
+    // Fetch all records
+    const rows = await sbGet('daily_pl','?select=work_date,total_cost,net_pl,total_income,core_present,dw_present,ot_hours&order=work_date.asc&limit=200');
+    html += `<div class="alert info"><div>Fetched ${rows.length} records. Calculating corrections...</div></div>`;
+    res.innerHTML = html + '</div>';
+
+    let patched = 0, skipped = 0, totalOldOverhead = 0, totalNewOverhead = 0;
+    const log = [];
+
+    for(const row of rows){
+      const dt = row.work_date;
+
+      // Calculate correct overhead for this date
+      const hasCoaster   = dt >= '2026-01-01' && dt <= '2026-03-31';
+      const madLeave     = dt >= '2026-03-08' && dt <= '2026-04-30';
+      const coasterNet   = hasCoaster ? 169.23 : 0;
+      const madAdj       = madLeave   ? -192.31 : 0;
+      const correctOH    = parseFloat((1100 + coasterNet + madAdj).toFixed(2));
+      const oldOH        = 1100; // what was used when records were saved
+
+      const ohDiff = parseFloat((correctOH - oldOH).toFixed(2));
+
+      // Skip days where overhead is already correct (May onwards, no coaster, no leave)
+      if(ohDiff === 0){ skipped++; continue; }
+
+      // Recalculate total_cost and net_pl
+      const oldCost  = parseFloat(row.total_cost);
+      const income   = parseFloat(row.total_income);
+      const newCost  = parseFloat((oldCost + ohDiff).toFixed(2));
+      const newNet   = parseFloat((income - newCost).toFixed(2));
+
+      totalOldOverhead += oldOH;
+      totalNewOverhead += correctOH;
+
+      // Validate before writing
+      if(isNaN(newCost) || isNaN(newNet) || !isFinite(newCost) || !isFinite(newNet)){
+        log.push({dt, error: `Invalid values: cost=${newCost} net=${newNet}`});
+        continue;
+      }
+
+      // PATCH the record
+      try {
+        const patchRes = await fetch(`${SB_URL}/rest/v1/daily_pl?work_date=eq.${dt}`, {
+          method: 'PATCH',
+          mode: 'cors',
+          headers: {
+            'apikey': SB_ANON,
+            'Authorization': 'Bearer ' + SB_ANON,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ total_cost: newCost, net_pl: newNet })
+        });
+        if(!patchRes.ok){
+          const errText = await patchRes.text();
+          log.push({dt, error: `HTTP ${patchRes.status}: ${errText}`});
+        } else {
+          log.push({dt, oldOH, correctOH, ohDiff, oldCost, newCost, oldNet: parseFloat(row.net_pl), newNet});
+          patched++;
+          status.textContent = `⏳ Patched ${patched} records...`;
+        }
+      } catch(e){
+        log.push({dt, error: e.message});
+      }
+    }
+
+    // Summary
+    const totalOHAdj = log.filter(l=>!l.error).reduce((s,l)=>s+l.ohDiff,0);
+    const totalNetAdj = log.filter(l=>!l.error).reduce((s,l)=>s+(l.newNet-l.oldNet),0);
+
+    html += `
+      <div class="alert ok"><div>✅ Done — ${patched} records patched · ${skipped} already correct (no adjustment needed)</div></div>
+      <div class="pls">Summary of changes</div>
+      <div class="plr ind"><span>Records patched</span><span>${patched}</span></div>
+      <div class="plr ind"><span>Records skipped (overhead already correct)</span><span>${skipped}</span></div>
+      <div class="plr ind"><span>Total overhead adjustment across all days</span><span>${totalOHAdj>=0?'+':''}AED ${totalOHAdj.toFixed(2)}</span></div>
+      <div class="plr tot ${totalNetAdj>=0?'gr':'rd'}"><span>Net P&L impact (positive = you were underestimating costs)</span><span>${totalNetAdj>=0?'+':''}AED ${totalNetAdj.toFixed(2)}</span></div>
+      <div class="pls">Per-date log</div>
+      <table style="width:100%;font-size:11px;border-collapse:collapse">
+        <thead><tr>
+          <th style="text-align:left;padding:4px 8px;border-bottom:.5px solid var(--border2)">Date</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:.5px solid var(--border2)">Old OH</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:.5px solid var(--border2)">Correct OH</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:.5px solid var(--border2)">OH Diff</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:.5px solid var(--border2)">Old Net</th>
+          <th style="text-align:right;padding:4px 8px;border-bottom:.5px solid var(--border2)">New Net</th>
+        </tr></thead>
+        <tbody>
+          ${log.map(l=>l.error
+            ? `<tr><td style="padding:3px 8px">${l.dt}</td><td colspan="5" style="color:var(--red);padding:3px 8px">ERROR: ${l.error}</td></tr>`
+            : `<tr>
+                <td style="padding:3px 8px;color:var(--ink2)">${l.dt}</td>
+                <td style="text-align:right;padding:3px 8px;color:var(--ink3)">AED ${l.oldOH.toFixed(2)}</td>
+                <td style="text-align:right;padding:3px 8px;color:var(--ink2)">AED ${l.correctOH.toFixed(2)}</td>
+                <td style="text-align:right;padding:3px 8px;color:${l.ohDiff>0?'var(--red)':'var(--green)'}">${l.ohDiff>0?'+':''}${l.ohDiff.toFixed(2)}</td>
+                <td style="text-align:right;padding:3px 8px;color:var(--ink3)">${l.oldNet>=0?'+':''}AED ${l.oldNet.toFixed(2)}</td>
+                <td style="text-align:right;padding:3px 8px;font-weight:500;color:${l.newNet>=0?'var(--green)':'var(--red)'}">${l.newNet>=0?'+':''}AED ${l.newNet.toFixed(2)}</td>
+              </tr>`
+          ).join('')}
+        </tbody>
+      </table>`;
+
+    status.textContent = `✅ ${patched} records patched successfully`;
+
+  } catch(e){
+    html += `<div class="alert danger"><div>❌ Error: ${e.message}</div></div>`;
+    status.textContent = '❌ Patch failed';
+  }
+
+  res.innerHTML = html + '</div>';
+}
+
+
+// ── DIAGNOSE DB ── checks for bad records after patch
+async function diagnoseDB(){
+  const status = document.getElementById('saveStatus');
+  const res = document.getElementById('pr2');
+  res.style.display = 'block';
+  status.textContent = '⏳ Diagnosing...';
+
+  let html = '<div class="card" style="margin-top:12px"><div class="chd">DB Diagnosis</div>';
+  try {
+    // Try raw fetch to see exact error
+    const r = await fetch(`${SB_URL}/rest/v1/daily_pl?select=work_date,total_cost,net_pl&order=work_date.asc`, {
+      headers: {
+        'apikey': SB_ANON,
+        'Authorization': 'Bearer ' + SB_ANON,
+        'Accept': 'application/json'
+      }
+    });
+    const text = await r.text();
+    if(!r.ok){
+      html += `<div class="alert danger"><div>❌ HTTP ${r.status}: ${text}</div></div>`;
+    } else {
+      const rows = JSON.parse(text);
+      html += `<div class="alert ok"><div>✅ Query OK — ${rows.length} records returned</div></div>`;
+      // Check for any null/bad values
+      const bad = rows.filter(r => r.total_cost === null || r.net_pl === null || isNaN(parseFloat(r.total_cost)) || isNaN(parseFloat(r.net_pl)));
+      if(bad.length){
+        html += `<div class="alert danger"><div>⚠ Found ${bad.length} records with null/bad values:</div></div>`;
+        bad.forEach(b => { html += `<div class="plr ind"><span>${b.work_date}</span><span>cost=${b.total_cost} net=${b.net_pl}</span></div>`; });
+      } else {
+        html += `<div class="alert ok"><div>✅ All ${rows.length} records have valid cost/net values</div></div>`;
+        // Show min/max
+        const costs = rows.map(r=>parseFloat(r.total_cost));
+        const nets = rows.map(r=>parseFloat(r.net_pl));
+        html += `<div class="plr ind"><span>Cost range</span><span>AED ${Math.min(...costs).toFixed(2)} – AED ${Math.max(...costs).toFixed(2)}</span></div>`;
+        html += `<div class="plr ind"><span>Net P&L range</span><span>AED ${Math.min(...nets).toFixed(2)} – AED ${Math.max(...nets).toFixed(2)}</span></div>`;
+        html += `<div class="plr tot"><span>Total net P&L (all days)</span><span>AED ${nets.reduce((a,b)=>a+b,0).toFixed(2)}</span></div>`;
+      }
+    }
+  } catch(e){
+    html += `<div class="alert danger"><div>❌ Exception: ${e.message}</div></div>`;
+  }
+  res.innerHTML = html + '</div>';
+  status.textContent = 'Diagnosis complete';
 }
 
 </script>
