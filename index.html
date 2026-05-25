@@ -142,6 +142,7 @@ tr:hover td{background:var(--surface2)}
 <nav class="nav">
   <button class="nb" onclick="show(&#39;ov&#39;,this)">Overview</button>
   <button class="nb" onclick="show(&#39;dl&#39;,this)">Daily P&amp;L</button>
+  <button class="nb" onclick="show(&#39;roi&#39;,this);loadROI()">Worker ROI</button>
   <button class="nb" onclick="show(&#39;pr&#39;,this)">Projects</button>
   <button class="nb" onclick="show(&#39;wf&#39;,this)">Workforce</button>
   <button class="nb active" onclick="show(&#39;oh&#39;,this)">Overhead</button>
@@ -1571,67 +1572,282 @@ tr:hover td{background:var(--surface2)}
     </div>
 </div>
 
-<!-- ══════════ PROJECTS ══════════ -->
-<div id="pr" class="sec">
-  <div class="g3">
+
+<!-- ══════════ WORKER ROI ══════════ -->
+<div id="roi" class="sec">
+
+  <!-- DATE PICKER + SUMMARY -->
+  <div class="g2" style="margin-bottom:14px;align-items:start">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:14px">
-        <div><div style="font-family:&#39;Fraunces&#39;,serif;font-size:16px;font-weight:300">Hilalco — AD572</div><div style="font-size:10px;color:var(--ink3);margin-top:2px">Saadiyat Lagoons Package 1</div></div>
-        <span class="badge teal">Active</span>
+      <div class="chd">Daily ROI — Select a Day</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <select id="roiDate" style="font-size:12px;padding:5px 8px;border-radius:var(--border-radius-md);border:.5px solid var(--border2);background:var(--bg1);color:var(--ink1);flex:1">
+          <option value="">— pick a date —</option>
+        </select>
+        <button class="btn gld" onclick="loadROIDay()">Analyse</button>
       </div>
-      <div class="plr"><span style="color:var(--ink2)">Client</span><span>Hilalco / Wade Adams JV</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Contract</span><span style="font-size:11px">AD572/0682/2023</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Adjusted value</span><span style="font-weight:600">AED 2,542,146</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Billed to date</span><span>AED 2,258,737</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Remaining</span><span style="color:var(--amber)">AED 283,409</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Retention held</span><span style="color:var(--red)">≈ AED 48,731</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Payment</span><span>Per certificate — timely ✓</span></div>
-      <div class="plr"><span style="color:var(--ink2)">New pipeline</span><span style="color:var(--green)">AED 20M confirmed ✓</span></div>
-      <div class="div"></div>
-      <div class="chd">Rate Card — Total AED 13/LM</div>
-      <div class="plr ind"><span>Kerb fixing / roll / cutpiece</span><span class="rp">AED 5.55/LM</span></div>
-      <div class="plr ind"><span>Grouting</span><span class="rp">AED 1.54/LM</span></div>
-      <div class="plr ind"><span>Blinding</span><span class="rp">AED 3.00/LM</span></div>
-      <div class="plr ind"><span>Haunching</span><span class="rp">AED 3.00/LM</span></div>
-      <div class="plr ind"><span>Tile (all types)</span><span class="rp">AED 12.00/m²</span></div>
-      <div class="plr ind"><span>Tile cutpiece</span><span style="color:var(--ink3)">AED 0 — finishing</span></div>
-      <div class="plr ind"><span>Retention</span><span style="color:var(--red)">5% held</span></div>
+      <div id="roiDayKPIs" style="display:none">
+        <div class="g2" style="gap:8px;margin-bottom:8px">
+          <div class="kpi teal" style="padding:10px 12px">
+            <div class="kl">Core Workers</div>
+            <div class="kv" id="roiCoreCount" style="font-size:20px">—</div>
+            <div class="ks" id="roiCoreCost">Cost: —</div>
+          </div>
+          <div class="kpi gold" style="padding:10px 12px">
+            <div class="kl">Daily Wage</div>
+            <div class="kv" id="roiDWCount" style="font-size:20px">—</div>
+            <div class="ks" id="roiDWCost">Cost: —</div>
+          </div>
+        </div>
+        <div class="g2" style="gap:8px">
+          <div class="kpi" style="padding:10px 12px">
+            <div class="kl">Core ROI</div>
+            <div class="kv" id="roiCoreROI" style="font-size:18px">—</div>
+            <div class="ks">Income ÷ salary cost</div>
+          </div>
+          <div class="kpi" style="padding:10px 12px">
+            <div class="kl">DW ROI</div>
+            <div class="kv" id="roiDWROI" style="font-size:18px">—</div>
+            <div class="ks">Income ÷ wage cost</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:14px">
-        <div><div style="font-family:&#39;Fraunces&#39;,serif;font-size:16px;font-weight:300">Innovo — IIA0101</div><div style="font-size:10px;color:var(--ink3);margin-top:2px">Saadiyat Lagoons Package 3</div></div>
-        <span class="badge info">Active</span>
-      </div>
-      <div class="plr"><span style="color:var(--ink2)">Client</span><span>Innovo Roads LLC</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Contract</span><span style="font-size:11px">IIA0101-SCA-00107</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Contract value</span><span style="font-weight:600">AED 135,000</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Scope</span><span>15,000 LM kerbstone</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Payment</span><span>30 days from invoice</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Retention</span><span style="color:var(--green)">None ✓</span></div>
-      <div class="alert warn" style="margin-top:12px"><div>Strict scope — no verbal instructions. Extra work without written VO is at your cost.</div></div>
-      <div class="div"></div>
-      <div class="chd">Rate Card — Total AED 9/LM</div>
-      <div class="plr ind"><span>Kerb fixing / roll</span><span class="rp">AED 7.50/LM</span></div>
-      <div class="plr ind"><span>Grouting</span><span class="rp">AED 1.54/LM</span></div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;margin-bottom:14px">
-        <div><div style="font-family:&#39;Fraunces&#39;,serif;font-size:16px;font-weight:300">Basatin</div><div style="font-size:10px;color:var(--ink3);margin-top:2px">LPO in progress</div></div>
-        <span class="badge profit">LPO Confirmed ✓</span>
-      </div>
-      <div class="plr"><span style="color:var(--ink2)">Status</span><span style="color:var(--amber)">Awaiting LPO</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Typical workers</span><span>14+ daily</span></div>
-      <div class="plr"><span style="color:var(--ink2)">Rates</span><span style="color:var(--amber)">Minimum assumed</span></div>
-      <div class="alert ok" style="margin-top:12px"><div><strong>LPO Confirmed!</strong> Kerb AED 14.50/LM · Tile AED 13.00/m²</div></div>
-      <div class="div"></div>
-      <div class="chd">Confirmed Rates</div>
-      <div class="plr ind"><span>Kerb fixing (all types)</span><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 14.50/LM ✓</span></div>
-      <div class="plr ind"><span>Grouting</span><span class="rp">AED 1.54/LM</span></div>
-      <div class="plr ind"><span>Tile (all types)</span><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 13.00/m² ✓</span></div>
-      <div class="plr ind"><span>Tile cutpiece</span><span style="color:var(--ink3)">AED 0 — finishing</span></div>
-      <div style="font-size:10px;color:var(--ink3);margin-top:10px;line-height:1.5">Basatin kerb at AED 14.50 is now your highest rate — nearly 2× Innovo (AED 7.50) and 3× Hilalco (AED 5.55).</div>
+      <div class="chd">Cumulative All-Time ROI</div>
+      <div id="roiCumulative"><div style="font-size:12px;color:var(--ink3)">Loading...</div></div>
     </div>
   </div>
+
+  <!-- DAY DETAIL: CORE vs DW breakdown -->
+  <div id="roiDayDetail" style="display:none">
+    <div class="g2" style="margin-bottom:14px">
+      <!-- CORE WORKERS -->
+      <div class="card">
+        <div class="chd" style="color:var(--teal)">Core Workers — Return on Salary</div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">Monthly salary ÷ 26 = daily cost · sorted by income generated</div>
+        <div id="roiCoreTable"></div>
+      </div>
+      <!-- DAILY WAGE -->
+      <div class="card">
+        <div class="chd" style="color:var(--amber)">Daily Wage — Return on Cash Paid</div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">Actual cash paid today · sorted by income generated</div>
+        <div id="roiDWTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUMULATIVE BEST PERFORMERS -->
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="chd" style="color:var(--teal)">Core — All-Time Best Performers</div>
+      <div id="roiCoreBest"><div style="font-size:12px;color:var(--ink3)">Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="chd" style="color:var(--amber)">Daily Wage — All-Time Best Performers</div>
+      <div id="roiDWBest"><div style="font-size:12px;color:var(--ink3)">Loading...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ PROJECTS ══════════ -->
+<div id="pr" class="sec">
+
+  <!-- VIEW TOGGLE -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn gld" onclick="showProjView('individual')" id="pvBtn_individual">Individual Projects</button>
+    <button class="btn" onclick="showProjView('all')" id="pvBtn_all">All Combined</button>
+  </div>
+
+  <!-- INDIVIDUAL VIEW (default) -->
+  <div id="pv_individual">
+    <!-- ROW 1: Hilalco + Innovo (Al Fakhira company) -->
+    <div style="font-size:11px;font-weight:500;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Al Fakhira Gen Cont LLC</div>
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+          <div><div style="font-family:'Fraunces',serif;font-size:16px;font-weight:300">Hilalco — AD572</div><div style="font-size:10px;color:var(--ink3);margin-top:2px">Saadiyat Lagoons Package 1</div></div>
+          <span class="badge teal">Active</span>
+        </div>
+        <div class="plr"><span style="color:var(--ink2)">Client</span><span>Hilalco / Wade Adams JV</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Contract</span><span style="font-size:11px">AD572/0682/2023</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Adjusted value</span><span style="font-weight:600">AED 2,542,146</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Billed to date</span><span>AED 2,258,737</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Remaining</span><span style="color:var(--amber)">AED 283,409</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Retention held</span><span style="color:var(--red)">≈ AED 48,731</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Payment</span><span>Per certificate — timely ✓</span></div>
+        <div class="plr"><span style="color:var(--ink2)">New pipeline</span><span style="color:var(--green)">AED 20M confirmed ✓</span></div>
+        <div class="div"></div>
+        <div class="chd">Rate Card — Total AED 13/LM</div>
+        <div class="plr ind"><span>Kerb fixing / roll / cutpiece</span><span class="rp">AED 5.55/LM</span></div>
+        <div class="plr ind"><span>Grouting</span><span class="rp">AED 1.54/LM</span></div>
+        <div class="plr ind"><span>Blinding</span><span class="rp">AED 3.00/LM</span></div>
+        <div class="plr ind"><span>Haunching</span><span class="rp">AED 3.00/LM</span></div>
+        <div class="plr ind"><span>Tile (all types)</span><span class="rp">AED 12.00/m²</span></div>
+        <div class="plr ind"><span>Tile cutpiece</span><span style="color:var(--ink3)">AED 0 — finishing</span></div>
+        <div class="plr ind"><span>Retention</span><span style="color:var(--red)">5% held</span></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+          <div><div style="font-family:'Fraunces',serif;font-size:16px;font-weight:300">Innovo — IIA0101</div><div style="font-size:10px;color:var(--ink3);margin-top:2px">Saadiyat Lagoons Package 3</div></div>
+          <span class="badge info">Active</span>
+        </div>
+        <div class="plr"><span style="color:var(--ink2)">Client</span><span>Innovo Roads LLC</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Contract</span><span style="font-size:11px">IIA0101-SCA-00107</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Contract value</span><span style="font-weight:600">AED 135,000</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Scope</span><span>15,000 LM kerbstone</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Payment</span><span>30 days from invoice</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Retention</span><span style="color:var(--green)">None ✓</span></div>
+        <div class="alert warn" style="margin-top:12px"><div>Strict scope — no verbal instructions. Extra work without written VO is at your cost.</div></div>
+        <div class="div"></div>
+        <div class="chd">Rate Card — Total AED 9/LM</div>
+        <div class="plr ind"><span>Kerb fixing / roll</span><span class="rp">AED 7.50/LM</span></div>
+        <div class="plr ind"><span>Grouting</span><span class="rp">AED 1.54/LM</span></div>
+      </div>
+    </div>
+
+    <!-- ROW 2: Basatin projects -->
+    <div style="font-size:11px;font-weight:500;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Realspot Gen Maintenance</div>
+    <div class="g2" style="margin-bottom:16px">
+
+      <!-- Basatin Phase 1: Hidd Al Saadiyat (Jan–Mar 2026) -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:300">Hidd Al Saadiyat</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:2px">Hidd Al Saadiyat · Jan–Mar 2026</div>
+          </div>
+          <span class="badge" style="background:#f0ede0;color:var(--ink2)">Completed</span>
+        </div>
+        <div class="plr"><span style="color:var(--ink2)">Project name</span><span>Hidd Al Saadiyat</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Period</span><span>Jan 2026 – Mar 2026</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Status</span><span style="color:var(--green)">Completed ✓</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Retention</span><span style="color:var(--green)">None ✓</span></div>
+        <div class="div"></div>
+        <div class="chd">Rates — Hidd Al Saadiyat</div>
+        <div class="plr ind"><span>Kerb fixing (all types)</span><span class="rp">AED 14.50/LM</span></div>
+        <div class="plr ind"><span>Grouting</span><span class="rp">AED 1.54/LM</span></div>
+        <div class="plr ind"><span>Tile (all types)</span><span class="rp" style="background:#fdf3e3;border-color:rgba(196,130,13,.3);color:var(--amber)">AED 15.00/m² ← higher rate</span></div>
+        <div class="plr ind"><span>Tile cutpiece / border</span><span style="color:var(--ink3)">AED 0 — finishing</span></div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:10px;line-height:1.5">Tile was at AED 15.00/m² during this phase — changed to AED 13.00 from Apr 2026.</div>
+      </div>
+
+      <!-- Basatin Phase 2: Saadiyat Lagoons (Apr 2026 onwards) -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:300">Saadiyat Lagoons</div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:2px">Saadiyat Lagoons · Apr 2026 onwards</div>
+          </div>
+          <span class="badge profit">Active ✓</span>
+        </div>
+        <div class="plr"><span style="color:var(--ink2)">Project name</span><span>Saadiyat Lagoons</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Period</span><span>Apr 2026 – ongoing</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Typical workers</span><span>14+ daily</span></div>
+        <div class="plr"><span style="color:var(--ink2)">Retention</span><span style="color:var(--green)">None ✓</span></div>
+        <div class="alert ok" style="margin-top:12px"><div><strong>LPO Confirmed!</strong> Kerb AED 14.50/LM · Tile AED 13.00/m²</div></div>
+        <div class="div"></div>
+        <div class="chd">Confirmed Rates — Saadiyat Lagoons</div>
+        <div class="plr ind"><span>Kerb fixing (all types)</span><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 14.50/LM ✓</span></div>
+        <div class="plr ind"><span>Grouting</span><span class="rp">AED 1.54/LM</span></div>
+        <div class="plr ind"><span>Tile (all types)</span><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 13.00/m² ✓</span></div>
+        <div class="plr ind"><span>Tile cutpiece / border</span><span style="color:var(--ink3)">AED 0 — finishing</span></div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:10px;line-height:1.5">Basatin kerb at AED 14.50 is now your highest rate — nearly 2× Innovo (AED 7.50) and 3× Hilalco (AED 5.55).</div>
+      </div>
+    </div>
+  </div>
+
+    <!-- ALL COMBINED VIEW -->
+  <div id="pv_all" style="display:none">
+    <div style="font-size:13px;font-weight:500;margin-bottom:12px">All Projects — Both Companies Combined</div>
+    <div class="g4" style="margin-bottom:12px">
+      <div class="kpi teal"><div class="kl">Hilalco 572</div><div class="kv">AED 5.55</div><div class="ks">Kerb/LM · Al Fakhira</div></div>
+      <div class="kpi blue"><div class="kl">Innovo</div><div class="kv">AED 7.50</div><div class="ks">Kerb/LM · Al Fakhira</div></div>
+      <div class="kpi gold"><div class="kl">Hidd Al Saadiyat</div><div class="kv">AED 15.00</div><div class="ks">Tile/m² · Jan–Mar 2026</div></div>
+      <div class="kpi profit"><div class="kl">Saadiyat Lagoons</div><div class="kv">AED 14.50</div><div class="ks">Kerb/LM · Apr 2026+</div></div>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <div class="chd">All Projects Rate Comparison</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="border-bottom:.5px solid var(--border2)">
+          <th style="text-align:left;padding:8px">Work Item</th>
+          <th style="text-align:right;padding:8px;color:var(--teal)">572 Hilalco</th>
+          <th style="text-align:right;padding:8px;color:var(--blue)">Innovo</th>
+          <th style="text-align:right;padding:8px;color:var(--amber)">Hidd Al Saadiyat<br><span style="font-weight:400;font-size:10px">Jan–Mar 2026</span></th>
+          <th style="text-align:right;padding:8px;color:var(--green)">Saadiyat Lagoons<br><span style="font-weight:400;font-size:10px">Apr 2026+</span></th>
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:.5px solid var(--border3)">
+            <td style="padding:8px">Kerb fixing / roll</td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 5.55</span></td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 7.50</span></td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 14.50</span></td>
+            <td style="text-align:right;padding:8px"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 14.50 ✓</span></td>
+          </tr>
+          <tr style="border-bottom:.5px solid var(--border3)">
+            <td style="padding:8px">Grouting</td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 1.54</span></td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 1.54</span></td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 1.54</span></td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 1.54</span></td>
+          </tr>
+          <tr style="border-bottom:.5px solid var(--border3)">
+            <td style="padding:8px">Blinding</td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 3.00</span></td>
+            <td style="text-align:right;padding:8px;color:var(--ink4)">—</td>
+            <td style="text-align:right;padding:8px;color:var(--ink4)">—</td>
+            <td style="text-align:right;padding:8px;color:var(--ink4)">—</td>
+          </tr>
+          <tr style="border-bottom:.5px solid var(--border3)">
+            <td style="padding:8px">Haunching</td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 3.00</span></td>
+            <td style="text-align:right;padding:8px;color:var(--ink4)">—</td>
+            <td style="text-align:right;padding:8px;color:var(--ink4)">—</td>
+            <td style="text-align:right;padding:8px;color:var(--ink4)">—</td>
+          </tr>
+          <tr style="border-bottom:.5px solid var(--border3)">
+            <td style="padding:8px">Tile (all types)</td>
+            <td style="text-align:right;padding:8px"><span class="rp">AED 12.00</span></td>
+            <td style="text-align:right;padding:8px;color:var(--ink4)">—</td>
+            <td style="text-align:right;padding:8px"><span class="rp" style="background:#fdf3e3;border-color:rgba(196,130,13,.3);color:var(--amber)">AED 15.00</span></td>
+            <td style="text-align:right;padding:8px"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 13.00 ✓</span></td>
+          </tr>
+          <tr style="border-bottom:.5px solid var(--border3)">
+            <td style="padding:8px">Retention</td>
+            <td style="text-align:right;padding:8px;color:var(--red)">5% held</td>
+            <td style="text-align:right;padding:8px;color:var(--green)">None ✓</td>
+            <td style="text-align:right;padding:8px;color:var(--green)">None ✓</td>
+            <td style="text-align:right;padding:8px;color:var(--green)">None ✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MONTHLY QUANTITY BREAKDOWN -->
+  <div style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-size:13px;font-weight:500">Monthly Quantity Breakdown</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Quantities completed per work item — live from database</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="font-size:12px;color:var(--ink3)">Project:</label>
+        <select id="qtyProject" style="font-size:12px;padding:4px 8px;border-radius:var(--border-radius-md);border:.5px solid var(--border2);background:var(--bg1);color:var(--ink1)">
+          <option value="all">All Projects</option>
+          <option value="572">Hilalco 572 (Al Fakhira)</option>
+          <option value="innovo">Innovo (Al Fakhira)</option>
+          <option value="basatin_ph1">Hidd Al Saadiyat (Jan–Mar 2026)</option>
+          <option value="basatin_ph2">Saadiyat Lagoons (Apr 2026+)</option>
+          <option value="basatin">Basatin — Both Projects</option>
+        </select>
+        <button class="btn gld" onclick="loadQtyBreakdown()" style="font-size:11px;padding:4px 12px">Load Quantities</button>
+      </div>
+    </div>
+    <div id="qtyResults"><div class="alert info"><div>Click "Load Quantities" to see monthly production per work item.</div></div></div>
+  </div>
+
 </div>
 
 <!-- ══════════ WORKFORCE ══════════ -->
@@ -2236,23 +2452,252 @@ async function loadDayDetail(dateStr){
     // Load work items if any
     let itemsHTML = '';
     try {
-      const items = await sbGet('work_items',`?work_date=eq.${dateStr}&order=site.asc`);
+      const items = await sbGet('work_items',`?work_date=eq.${dateStr}&order=site.asc,work_type.asc`);
       if(items.length){
-        itemsHTML = `<div class="card" style="margin-top:14px">
-          <div class="chd">Work Items — ${fmt_date(dateStr)}</div>
-          <table>
-            <thead><tr><th>Worker(s)</th><th>Site</th><th>Work Type</th><th class="tr">Qty</th><th class="tr">Rate</th><th class="tr">Income</th></tr></thead>
-            <tbody>${items.map(it=>`<tr>
-              <td style="font-size:11px">${it.worker_names||'—'}</td>
-              <td><span class="site ${it.site==='572'?'s572':it.site==='innovo'?'sinn':'sbas'}">${it.site}</span></td>
-              <td style="font-size:11px">${it.work_type||'—'}</td>
-              <td class="tr">${it.quantity} ${it.unit||'LM'}</td>
-              <td class="tr">${parseFloat(it.rate)>0?'AED '+it.rate:'AED 0'}</td>
-              <td class="tr" style="color:${parseFloat(it.income)>0?'var(--green)':'var(--ink3)'}">${parseFloat(it.income)>0?'AED '+f(it.income):'—'}</td>
-            </tr>`).join('')}</tbody>
-          </table></div>`;
+
+        // ── Parse worker groups from raw message for name lookup ──
+        const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+        const siteClass = {'572':'s572','innovo':'sinn','basatin':'sbas'};
+        const siteColor = {'572':'var(--teal)','innovo':'var(--purple)','basatin':'var(--amber)'};
+
+        // Build a lookup: site+worktype+qty -> workerNames from raw message
+        const rawLookup = {};
+        if(d.whatsapp_raw){
+          const rawLines = d.whatsapp_raw.split('\n');
+          let curNames = ''; let curSite = '572';
+          rawLines.forEach(function(rl){
+            const rlt = rl.trim();
+            if(!rlt) return;
+            const rll = rlt.toLowerCase();
+            if(rll.includes('site=572')) curSite='572';
+            else if(/\(basatin\s*\+\s*572\)/i.test(rlt)||/\(572\s*\+\s*basatin\)/i.test(rlt)) curSite='both';
+            else if(/\(basatin[^)]*\)/i.test(rlt)) curSite='basatin';
+            else if(/\(innovo[^)]*\)/i.test(rlt)) curSite='innovo';
+            else if(/\(572[^)]*\)/i.test(rlt)) curSite='572';
+            // Worker group line
+            const wgm = rlt.match(/^(\d+)\s*[Pp][.\s]+([^(\n]+)/);
+            if(wgm){
+              curNames = wgm[2].replace(/\./g,' ').replace(/\s+/g,' ').trim();
+              return;
+            }
+            // Work line — store lookup by qty
+            const qm = rlt.match(/([\d.]+)\s*\.?\s*(Square\s*m|Lm|LM)/i);
+            if(qm && curNames){
+              const qty = parseFloat(qm[1]);
+              const sites = curSite === 'both' ? ['572','basatin'] : [curSite];
+              sites.forEach(function(s){
+                const key = s + '_' + qty.toFixed(1);
+                if(!rawLookup[key]) rawLookup[key] = [];
+                rawLookup[key].push(curNames);
+              });
+            }
+          });
+        }
+
+        // ── 1. DETAILED TABLE grouped by site ──
+        // Group items by site preserving order
+        const siteOrder = ['572','innovo','basatin'];
+        const itemsBySite = {};
+        siteOrder.forEach(s => itemsBySite[s] = []);
+        items.forEach(it => { if(itemsBySite[it.site]) itemsBySite[it.site].push(it); });
+
+        let detailHTML = '';
+        siteOrder.forEach(function(site){
+          const siteItems = itemsBySite[site];
+          if(!siteItems.length) return;
+
+          // Group consecutive same-worker items
+          const groups = [];
+          siteItems.forEach(function(it){
+            const qty = parseFloat(it.quantity).toFixed(1);
+            const key = site + '_' + qty;
+            // Find name from lookup
+            const stored = (it.worker_names||'').replace(/\+/g,' ').trim();
+            const fromRaw = rawLookup[key] ? rawLookup[key].shift() : '';
+            const names = fromRaw || stored || '—';
+            groups.push({...it, resolvedNames: names});
+          });
+
+          detailHTML += '<div style="margin-bottom:20px">';
+          detailHTML += '<div style="font-size:13px;font-weight:600;color:' + (siteColor[site]||'var(--ink2)') + ';padding:8px 0;border-bottom:.5px solid var(--border2);margin-bottom:4px">' + (siteLabel[site]||site) + '</div>';
+          detailHTML += '<table style="width:100%;border-collapse:collapse">';
+          detailHTML += '<thead><tr style="border-bottom:.5px solid var(--border2)">';
+          detailHTML += '<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--ink3)">WORKER(S)</th>';
+          detailHTML += '<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--ink3)">WORK TYPE</th>';
+          detailHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">QTY</th>';
+          detailHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">RATE</th>';
+          detailHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">INCOME</th>';
+          detailHTML += '</tr></thead><tbody>';
+
+          groups.forEach(function(it){
+            const hasInc = parseFloat(it.income) > 0;
+            const qty = parseFloat(it.quantity).toFixed(1);
+            // Format names cleanly
+            const nameDisplay = it.resolvedNames.split(/[+,]/).map(n=>n.trim()).filter(n=>n&&n!=='—').join(' + ') || '—';
+            detailHTML += '<tr style="border-bottom:.5px solid var(--border3)">';
+            detailHTML += '<td style="padding:6px 8px;font-size:11px;font-weight:500;color:var(--ink1)">' + nameDisplay + '</td>';
+            detailHTML += '<td style="padding:6px 8px;font-size:11px;color:var(--ink2)">' + (it.work_type||'—') + '</td>';
+            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:500">' + qty + ' ' + (it.unit||'LM') + '</td>';
+            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink3)">' + (parseFloat(it.rate)>0?'AED '+parseFloat(it.rate).toFixed(2):'—') + '</td>';
+            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:' + (hasInc?'600':'400') + ';color:' + (hasInc?'var(--green)':'var(--ink3)') + '">' + (hasInc?'AED '+f(it.income):'—') + '</td>';
+            detailHTML += '</tr>';
+          });
+
+          detailHTML += '</tbody></table></div>';
+        });
+
+        // ── 2. CUMULATIVE SITE SUMMARY (work type × site matrix) ──
+        // Collect all work types across all sites
+        const WORK_TYPES = ['Kerb Fixing','Grouting','Blinding','Haunching','Tile Laying','Tile Border','Tile Cutpiece'];
+        const summary = {}; // site -> workType -> {qty, unit, income, workerSet}
+        sites.forEach(s => {
+          summary[s] = {};
+          WORK_TYPES.forEach(wt => { summary[s][wt] = {qty:0, income:0, workers: new Set()}; });
+        });
+
+        items.forEach(it => {
+          const s = it.site;
+          if(!summary[s]) return;
+          // Match work type loosely
+          let wt = 'Kerb Fixing';
+          const wl = (it.work_type||'').toLowerCase();
+          if(wl.includes('grouting')) wt = 'Grouting';
+          else if(wl.includes('blinding')) wt = 'Blinding';
+          else if(wl.includes('haunching')) wt = 'Haunching';
+          else if(wl.includes('border')) wt = 'Tile Border';
+          else if(wl.includes('cutpiece')||wl.includes('cut piece')) wt = 'Tile Cutpiece';
+          else if(wl.includes('tile')||wl.includes('taile')) wt = 'Tile Laying';
+          else if(wl.includes('kerb')) wt = 'Kerb Fixing';
+
+          if(!summary[s][wt]) summary[s][wt] = {qty:0, income:0, workers: new Set()};
+          summary[s][wt].qty = parseFloat((summary[s][wt].qty + parseFloat(it.quantity||0)).toFixed(2));
+          summary[s][wt].income = parseFloat((summary[s][wt].income + parseFloat(it.income||0)).toFixed(2));
+          // Add worker names
+          (it.worker_names||'').split('+').forEach(n => {
+            const nm = n.trim();
+            if(nm && nm !== '—') summary[s][wt].workers.add(nm);
+          });
+        });
+
+        // Build summary table rows
+        let summaryRows = '';
+        WORK_TYPES.forEach(wt => {
+          const hasAny = sites.some(s => summary[s][wt] && summary[s][wt].qty > 0);
+          const wtColor = wt.includes('Tile') ? 'var(--purple)' : 'var(--ink2)';
+          summaryRows += `<tr style="border-bottom:.5px solid var(--border3)">
+            <td style="padding:7px 8px;font-size:12px;font-weight:500;color:${wtColor}">${wt}</td>
+            ${sites.map(s => {
+              const sd = summary[s][wt];
+              if(!sd || sd.qty === 0) return `<td style="text-align:center;padding:7px 8px">
+                <span style="font-size:11px;color:var(--ink4)">—</span>
+              </td>`;
+              const wCount = sd.workers.size;
+              const unit = (wt==='Tile Laying'||wt==='Tile Border'||wt==='Tile Cutpiece') && wt==='Tile Laying' ? 'm²' : 'LM';
+              return `<td style="padding:7px 8px">
+                <div style="font-size:13px;font-weight:600;color:${siteColor[s]}">${sd.qty.toFixed(1)} <span style="font-size:10px;font-weight:400">${unit}</span></div>
+                <div style="font-size:10px;color:var(--ink3)">${wCount}P · ${sd.income>0?'AED '+sd.income.toFixed(0):'no income'}</div>
+              </td>`;
+            }).join('')}
+          </tr>`;
+        });
+
+        // Totals row
+        summaryRows += `<tr style="background:var(--bg2);font-weight:600;border-top:.5px solid var(--border2)">
+          <td style="padding:7px 8px;font-size:12px">Total Income</td>
+          ${sites.map(s => {
+            const total = WORK_TYPES.reduce((sum,wt)=>sum+(summary[s][wt]?summary[s][wt].income:0),0);
+            return `<td style="padding:7px 8px;color:${total>0?'var(--green)':'var(--ink4)'};font-size:13px">${total>0?'AED '+total.toFixed(0):'—'}</td>`;
+          }).join('')}
+        </tr>`;
+
+        // Worker cost map for difference calculation
+        const WC = {'572':{kerb:5.55,grouting:1.54,blinding:3.00,haunching:3.00,tile:12.00,tile_border:12.00},
+                    'innovo':{kerb:7.50,grouting:1.54},
+                    'basatin':{kerb:14.50,grouting:1.54,tile:13.00,tile_border:0}};
+
+        // Build site summary: vertical, one site at a time with cost+income+diff
+        const WORK_TYPES_ORD = ['Kerb Fixing','Grouting','Blinding','Haunching','Tile Laying','Tile Border','Tile Cutpiece'];
+        const siteDefs2 = [{key:'572',label:'Hilalco 572',color:'var(--teal)',retention:true},
+                           {key:'innovo',label:'Innovo',color:'var(--purple)',retention:false},
+                           {key:'basatin',label:'Basatin',color:'var(--amber)',retention:false}];
+
+        let siteSummaryHTML = '';
+        siteDefs2.forEach(function(sd){
+          const sd_data = summary[sd.key];
+          let totalInc = 0, totalCost = 0;
+          const WORK_TYPES_ORD2 = ['Kerb Fixing','Grouting','Blinding','Haunching','Tile Laying','Tile Border','Tile Cutpiece'];
+
+          let trows = '';
+          WORK_TYPES_ORD2.forEach(function(wt){
+            const d2 = sd_data[wt];
+            const qty = d2 ? d2.qty : 0;
+            const inc = d2 ? d2.income : 0;
+            const wCount = d2 ? d2.workers.size : 0;
+            const unit = wt === 'Tile Laying' ? 'm²' : 'LM';
+
+            // Estimate worker cost for this work type (salary portion for people doing this work)
+            // We use: income / ROI_benchmark — or just show income vs income (no separate cost per line)
+            // Instead show: workers involved, qty, income
+            if(qty === 0){
+              trows += '<tr style="opacity:.4;border-bottom:.5px solid var(--border3)">';
+              trows += '<td style="padding:6px 8px;font-size:11px;color:var(--ink4)">' + wt + '</td>';
+              trows += '<td style="text-align:center;padding:6px 8px;font-size:11px;color:var(--ink4)">0 ' + unit + '</td>';
+              trows += '<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink4)">—</td>';
+              trows += '<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink4)">—</td>';
+              trows += '</tr>';
+            } else {
+              totalInc += inc;
+              const isTile = wt.startsWith('Tile');
+              trows += '<tr style="border-bottom:.5px solid var(--border3)">';
+              trows += '<td style="padding:6px 8px">';
+              trows += '<div style="font-size:12px;font-weight:500;color:' + (isTile?'var(--purple)':'var(--ink1)') + '">' + wt + '</div>';
+              trows += '<div style="font-size:10px;color:var(--ink3)">' + wCount + ' worker' + (wCount!==1?'s':'') + '</div>';
+              trows += '</td>';
+              trows += '<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600">' + qty.toFixed(1) + ' <span style="font-size:10px;font-weight:400;color:var(--ink3)">' + unit + '</span></td>';
+              trows += '<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600;color:var(--green)">' + (inc>0?'AED '+inc.toFixed(0):'—') + '</td>';
+              trows += '<td style="text-align:right;padding:6px 8px">';
+              if(inc > 0){
+                // Show rate being earned
+                const rateEarned = (qty > 0) ? (inc/qty).toFixed(2) : '0';
+                trows += '<span style="font-size:10px;color:var(--ink3)">@ AED '+rateEarned+'/'+unit+'</span>';
+              }
+              trows += '</td>';
+              trows += '</tr>';
+            }
+          });
+
+          siteSummaryHTML += '<div class="card" style="margin-bottom:12px">';
+          siteSummaryHTML += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+          siteSummaryHTML += '<div style="font-size:14px;font-weight:600;color:' + sd.color + '">' + sd.label + '</div>';
+          siteSummaryHTML += '<div style="font-size:15px;font-weight:600;color:' + (totalInc>0?'var(--green)':'var(--ink4)') + '">' + (totalInc>0?'AED '+totalInc.toFixed(0):'No work today') + '</div>';
+          siteSummaryHTML += '</div>';
+          siteSummaryHTML += '<table style="width:100%;border-collapse:collapse">';
+          siteSummaryHTML += '<thead><tr style="border-bottom:.5px solid var(--border2)">';
+          siteSummaryHTML += '<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--ink3);width:35%">WORK TYPE</th>';
+          siteSummaryHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">QTY</th>';
+          siteSummaryHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">INCOME</th>';
+          siteSummaryHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">RATE EARNED</th>';
+          siteSummaryHTML += '</tr></thead><tbody>' + trows + '</tbody>';
+          siteSummaryHTML += '<tfoot><tr style="border-top:.5px solid var(--border2);background:var(--bg2)">';
+          siteSummaryHTML += '<td colspan="2" style="padding:7px 8px;font-size:12px;font-weight:700">Total Income</td>';
+          siteSummaryHTML += '<td colspan="2" style="text-align:right;padding:7px 8px;font-size:14px;font-weight:700;color:' + (totalInc>0?'var(--green)':'var(--ink4)') + '">' + (totalInc>0?'AED '+totalInc.toFixed(0):'—') + '</td>';
+          siteSummaryHTML += '</tr></tfoot></table></div>';
+        });
+
+        itemsHTML = `
+        <div class="card" style="margin-top:14px">
+          <div class="chd">Work Items — ${fmt_date(dateStr)} — by Worker Group</div>
+          <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Each group shows worker names · work type · qty · income</div>
+          ${detailHTML}
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="chd">Site Summary — ${fmt_date(dateStr)}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Zero = not done that day — push team where you see gaps 🔴</div>
+          ${siteSummaryHTML}
+        </div>`;
+
       }
-    } catch(e){}
+    } catch(e){ console.error('work items error:',e); }
 
     dd.innerHTML = `
       <div class="sbox" style="margin-bottom:14px">
@@ -2301,7 +2746,8 @@ async function loadDayDetail(dateStr){
           <div class="plr"><span style="color:var(--ink3)">Monthly projection ×26</span><span style="color:var(--ink3)">${ip?'+':''}AED ${(parseFloat(d.net_pl)*26).toFixed(0)}</span></div>
         </div>
       </div>
-      ${d.absent_names?`<div class="alert warn" style="margin-top:0"><div><strong>Absent:</strong> ${d.absent_names}</div></div>`:''}
+      ${d.absent_names?`<div class="alert warn" style="margin-top:14px"><div><strong>Absent:</strong> ${d.absent_names}</div></div>`:''}
+      ${buildWorkersHTML(d.whatsapp_raw)}
       ${itemsHTML}
     `;
   } catch(e){
@@ -2371,7 +2817,7 @@ async function parseAndSave(){
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
 
-  let site='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[];
+  let site='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='';
   txt.split('\n').forEach(line=>{
     const sl = line.toLowerCase();
 
@@ -2389,9 +2835,10 @@ async function parseAndSave(){
       else if(/basatin/.test(sl)) site='basatin';
     }
 
-    // Extract worker names from lines like "2P. Bilal. Singlesh"
+    // Extract worker names from lines like "2P. Bilal. Singlesh" — carry forward to work lines
     const workerM = line.match(/^\d+P[\s.]+([^(]+)/i);
-    const workerNames = workerM ? workerM[1].replace(/\./g,'+').trim() : '';
+    if(workerM) currentWorkerNames = workerM[1].replace(/\./g,'+').replace(/\s+/g,' ').trim();
+    const workerNames = currentWorkerNames;
 
     // ── QUANTITY REGEX: fixed to handle missing "=", spaces in units, and bracket formats
     // Matches: "=30.Lm" "=30.Lm)" "8.Lm" "(10.cm p)8.Lm" "=8. Lm" "=30.Square m"
@@ -3560,6 +4007,615 @@ async function diagnoseDB(){
   }
   res.innerHTML = html + '</div>';
   status.textContent = 'Diagnosis complete';
+}
+
+
+// ── MONTHLY QUANTITY BREAKDOWN ──
+async function loadQtyBreakdown(){
+  const res = document.getElementById('qtyResults');
+  const proj = document.getElementById('qtyProject').value;
+  res.innerHTML = '<div class="loading"><div class="spinner"></div>Loading quantities from database...</div>';
+
+  try {
+    const rows = await sbGet('daily_pl','?select=work_date,whatsapp_raw,total_workers&order=work_date.asc&limit=200');
+    
+    // Monthly accumulator: { 'Jan 2026': { '572_kerb': qty, '572_grouting': qty, ... } }
+    const months = {};
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    for(const row of rows){
+      if(!row.whatsapp_raw) continue;
+      const dt = row.work_date;
+      const d = new Date(dt);
+      const mkey = MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+      if(!months[mkey]) months[mkey] = {
+        _days: 0,
+        s572_kerb:0, s572_grouting:0, s572_blinding:0, s572_haunching:0, s572_tile:0,
+        innovo_kerb:0, innovo_grouting:0,
+        basatin_kerb:0, basatin_grouting:0, basatin_tile:0, basatin_tile_border:0
+      };
+      months[mkey]._days++;
+
+      // Parse work items from whatsapp_raw
+      const lines = row.whatsapp_raw.split('\n');
+      let currentSite = '572'; // default
+
+      for(let i=0; i<lines.length; i++){
+        const line = lines[i].trim().toLowerCase();
+        const raw = lines[i].trim();
+
+        // Site detection
+        if(raw.match(/\(basatin\s*\+\s*572\)/i) || raw.match(/\(572\s*\+\s*basatin\)/i)){
+          currentSite = 'both';
+        } else if(raw.match(/\(basatin[^)]*\)/i)) currentSite = 'basatin';
+        else if(raw.match(/\(innovo[^)]*\)/i)) currentSite = 'innovo';
+        else if(raw.match(/\(572[^)]*\)/i)) currentSite = '572';
+        else if(raw.match(/site\s*=\s*572/i)) currentSite = '572';
+        else if(raw.match(/site\s*=\s*basatin/i)) currentSite = 'basatin';
+        else if(raw.match(/site\s*=\s*innovo/i)) currentSite = 'innovo';
+
+        // Extract quantity from pattern like "=72.Lm" or "=5.Square m" or "=14.Lm"
+        const getQty = (l) => {
+          const m = l.match(/=\s*([\d.]+)\s*(?:lm|l\.m|linear|m²|m2|square\s*m|sq)/i);
+          return m ? parseFloat(m[1]) : 0;
+        };
+
+        // Detect work type and accumulate
+        const sites = currentSite === 'both' ? ['572','basatin'] : [currentSite];
+
+        if(line.match(/kerb\s*(fix|blok|block|roll|cutpece|cutpiece)/i) && !line.match(/blinding|haunching|grouting/i)){
+          const qty = getQty(raw);
+          if(qty > 0){
+            sites.forEach(s => {
+              if(s==='572') months[mkey].s572_kerb += qty/sites.length;
+              else if(s==='innovo') months[mkey].innovo_kerb += qty/sites.length;
+              else if(s==='basatin') months[mkey].basatin_kerb += qty/sites.length;
+            });
+          }
+        } else if(line.match(/grutting|grouting/i)){
+          const qty = getQty(raw);
+          if(qty > 0){
+            sites.forEach(s => {
+              if(s==='572') months[mkey].s572_grouting += qty/sites.length;
+              else if(s==='innovo') months[mkey].innovo_grouting += qty/sites.length;
+              else if(s==='basatin') months[mkey].basatin_grouting += qty/sites.length;
+            });
+          }
+        } else if(line.match(/kerb\s*blinding/i)){
+          const qty = getQty(raw);
+          if(qty > 0 && (currentSite==='572'||currentSite==='both')) months[mkey].s572_blinding += qty;
+        } else if(line.match(/haunching/i)){
+          const qty = getQty(raw);
+          if(qty > 0) months[mkey].s572_haunching += qty;
+        } else if(line.match(/taile|tile/i) && !line.match(/cutpece|cutpiece|border|bend/i)){
+          const qty = getQty(raw);
+          if(qty > 0){
+            sites.forEach(s => {
+              if(s==='572') months[mkey].s572_tile += qty/sites.length;
+              else if(s==='basatin') months[mkey].basatin_tile += qty/sites.length;
+            });
+          }
+        } else if(line.match(/tile\s*border|taile\s*border/i)){
+          const qty = getQty(raw);
+          if(qty > 0) months[mkey].basatin_tile_border += qty;
+        }
+      }
+    }
+
+    // Filter by selected project
+    const allMonthKeys = Object.keys(months);
+    if(!allMonthKeys.length){ res.innerHTML='<div class="alert warn"><div>No data found.</div></div>'; return; }
+
+    let html = '';
+
+    // Show per-project tables based on filter
+    const showProjects = proj === 'all' ? ['572','innovo','basatin_ph1','basatin_ph2'] :
+                         proj === 'alfakhira' ? ['572','innovo'] :
+                         proj === 'realspot' ? ['basatin_ph1','basatin_ph2'] :
+                         proj === 'basatin' ? ['basatin_ph1','basatin_ph2'] : [proj];
+
+    // Project configs
+    const projConfig = {
+      '572': {
+        label: 'Hilalco 572 — Al Fakhira', color: 'var(--teal)',
+        items: [
+          {key:'s572_kerb', label:'Kerb fixing / roll / cutpiece', unit:'LM', rate:5.55},
+          {key:'s572_grouting', label:'Grouting', unit:'LM', rate:1.54},
+          {key:'s572_blinding', label:'Kerb blinding', unit:'LM', rate:3.00},
+          {key:'s572_haunching', label:'Haunching', unit:'LM', rate:3.00},
+          {key:'s572_tile', label:'Tile (all types)', unit:'m²', rate:12.00},
+        ]
+      },
+      'innovo': {
+        label: 'Innovo IIA0101 — Al Fakhira', color: 'var(--blue)',
+        items: [
+          {key:'innovo_kerb', label:'Kerb fixing / roll', unit:'LM', rate:7.50},
+          {key:'innovo_grouting', label:'Grouting', unit:'LM', rate:1.54},
+        ]
+      },
+      'basatin_ph1': {
+        label: 'Hidd Al Saadiyat — Jan–Mar 2026', color: 'var(--amber)',
+        phaseFilter: (m) => (m.includes('Jan')||m.includes('Feb')||m.includes('Mar')) && m.includes('2026'),
+        items: [
+          {key:'basatin_kerb', label:'Kerb fixing (all types)', unit:'LM', rate:14.50},
+          {key:'basatin_grouting', label:'Grouting', unit:'LM', rate:1.54},
+          {key:'basatin_tile', label:'Tile (all types)', unit:'m²', rate:15.00},
+          {key:'basatin_tile_border', label:'Tile border', unit:'LM', rate:0},
+        ]
+      },
+      'basatin_ph2': {
+        label: 'Saadiyat Lagoons — Apr 2026+', color: 'var(--green)',
+        phaseFilter: (m) => !((m.includes('Jan')||m.includes('Feb')||m.includes('Mar')) && m.includes('2026')),
+        items: [
+          {key:'basatin_kerb', label:'Kerb fixing (all types)', unit:'LM', rate:14.50},
+          {key:'basatin_grouting', label:'Grouting', unit:'LM', rate:1.54},
+          {key:'basatin_tile', label:'Tile (all types)', unit:'m²', rate:13.00},
+          {key:'basatin_tile_border', label:'Tile border', unit:'LM', rate:0},
+        ]
+      }
+    };
+
+
+    for(const p of showProjects){
+      const pc = projConfig[p];
+      // Apply phase filter if defined
+      const monthKeys = pc.phaseFilter ? allMonthKeys.filter(pc.phaseFilter) : allMonthKeys;
+      if(!monthKeys.length) continue;
+      html += `
+        <div class="card" style="margin-bottom:14px;overflow-x:auto">
+          <div class="chd" style="color:${pc.color}">${pc.label} — Monthly Quantities</div>
+          <table style="width:100%;font-size:12px;border-collapse:collapse;min-width:600px">
+            <thead>
+              <tr style="border-bottom:.5px solid var(--border2)">
+                <th style="text-align:left;padding:8px;font-weight:500;color:var(--ink2)">Work Item</th>
+                <th style="text-align:center;padding:8px;font-size:10px;color:var(--ink3)">Rate</th>
+                ${monthKeys.map(m=>`<th style="text-align:right;padding:8px;white-space:nowrap;font-weight:500">${m}</th>`).join('')}
+                <th style="text-align:right;padding:8px;font-weight:600;color:var(--ink1)">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pc.items.map(item => {
+                const totQty = monthKeys.reduce((s,m)=>s+(months[m][item.key]||0),0);
+                const totInc = item.rate === 'tile_variable'
+                  ? monthKeys.reduce((s,m)=>{
+                      const q = months[m][item.key]||0;
+                      const r = (m.includes('Jan')||m.includes('Feb')||m.includes('Mar')) && m.includes('2026') ? 15 : 13;
+                      return s + q*r;
+                    },0)
+                  : (item.rate > 0 ? totQty * item.rate : 0);
+                return `
+                  <tr style="border-bottom:.5px solid var(--border3)">
+                    <td style="padding:8px;color:var(--ink2)">${item.label}</td>
+                    <td style="padding:8px;text-align:center;font-size:10px;color:var(--ink3)">${item.rate>0?'AED '+item.rate+'/'+item.unit:'finishing'}</td>
+                    ${monthKeys.map(m => {
+                      const q = months[m][item.key]||0;
+                      // Basatin tile rate: Jan-Mar 2026 = AED 15, Apr 2026+ = AED 13
+                      const effectiveRate = item.rate === 'tile_variable'
+                        ? (m.includes('Jan')||m.includes('Feb')||m.includes('Mar') ? (m.includes('2026')?15:13) : 13)
+                        : item.rate;
+                      return `<td style="text-align:right;padding:8px;white-space:nowrap">
+                        ${q>0?`<div style="font-weight:500">${q.toFixed(1)} ${item.unit}</div>${effectiveRate>0?`<div style="font-size:10px;color:var(--ink3)">AED ${(q*effectiveRate).toFixed(0)}${item.rate==='tile_variable'?' <span style=\'font-size:9px;color:var(--amber)\'>@'+effectiveRate+'</span>':''}</div>`:''}`:'<span style="color:var(--ink4)">—</span>'}
+                      </td>`;
+                    }).join('')}
+                    <td style="text-align:right;padding:8px;font-weight:600;white-space:nowrap">
+                      <div>${totQty>0?totQty.toFixed(1)+' '+item.unit:'—'}</div>
+                      ${totInc>0?`<div style="font-size:10px;color:var(--green)">AED ${totInc.toFixed(0)}</div>`:''}
+                    </td>
+                  </tr>`;
+              }).join('')}
+              <tr style="background:var(--bg2);font-weight:600;border-top:.5px solid var(--border2)">
+                <td style="padding:8px" colspan="2">Total Income (est.)</td>
+                ${monthKeys.map(m => {
+                  const inc = pc.items.reduce((s,item)=>{
+                    const q = months[m][item.key]||0;
+                    const r = item.rate === 'tile_variable'
+                      ? ((m.includes('Jan')||m.includes('Feb')||m.includes('Mar')) && m.includes('2026') ? 15 : 13)
+                      : item.rate;
+                    return s + q * r;
+                  },0);
+                  return `<td style="text-align:right;padding:8px;white-space:nowrap;color:var(--green)">${inc>0?'AED '+inc.toFixed(0):'—'}</td>`;
+                }).join('')}
+                <td style="text-align:right;padding:8px;color:var(--green)">AED ${pc.items.reduce((s,item)=>{
+                  return s + monthKeys.reduce((ss,m)=>{
+                    const q = months[m][item.key]||0;
+                    const r = item.rate === 'tile_variable'
+                      ? ((m.includes('Jan')||m.includes('Feb')||m.includes('Mar')) && m.includes('2026') ? 15 : 13)
+                      : (item.rate||0);
+                    return ss + q*r;
+                  },0);
+                },0).toFixed(0)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    res.innerHTML = html || '<div class="alert warn"><div>No quantities found for this project.</div></div>';
+
+  } catch(e){
+    res.innerHTML = `<div class="alert danger"><div>Error: ${e.message}</div></div>`;
+    console.error('loadQtyBreakdown error:', e);
+  }
+}
+
+
+// ── PROJECT VIEW TOGGLE ──
+function showProjView(view){
+  ['individual','alfakhira','realspot','all'].forEach(v=>{
+    const el = document.getElementById('pv_'+v);
+    const btn = document.getElementById('pvBtn_'+v);
+    if(el) el.style.display = v===view ? '' : 'none';
+    if(btn){
+      btn.className = v===view ? 'btn gld' : 'btn';
+    }
+  });
+}
+
+
+// ── BUILD WORKERS HTML ──
+function buildWorkersHTML(raw){
+  if(!raw) return '';
+  const lines = raw.split('\n');
+  const groups = [];
+  let currentSite = '572';
+  const siteColors = {'572':'var(--teal)','innovo':'var(--blue)','basatin':'var(--amber)'};
+  const siteLabels = {'572':'572','innovo':'Innovo','basatin':'Basatin'};
+  const noiseWords = ['site','daily','wage','over','time','per','person','total','combined','forman','foreman','absent'];
+
+  for(let i=0; i<lines.length; i++){
+    const line = lines[i].trim();
+    const sl = line.toLowerCase();
+    // Site detection
+    if(sl.includes('site=572')) currentSite='572';
+    else if(/\(basatin\s*\+\s*572\)/i.test(line)||/\(572\s*\+\s*basatin\)/i.test(line)) currentSite='both';
+    else if(/\(basatin[^)]*\)/i.test(line)) currentSite='basatin';
+    else if(/\(innovo[^)]*\)/i.test(line)) currentSite='innovo';
+    else if(/\(572[^)]*\)/i.test(line)) currentSite='572';
+
+    // Worker group line: e.g. "2P.Bilal.Faruk (572)" or "1P Etienne"
+    const wm = line.match(/^(\d+)\s*[Pp][.\s]+(.+)/);
+    if(wm){
+      const namePart = wm[2].replace(/\([^)]*\)/g,'').trim();
+      const names = namePart.split(/[.\s,]+/).filter(n =>
+        n.length > 1 && !noiseWords.includes(n.toLowerCase())
+      );
+      // Collect work lines below
+      const workLines = [];
+      for(let j=i+1; j<lines.length && j<i+8; j++){
+        const wl = lines[j].trim();
+        if(!wl) continue;
+        if(/^\d+\s*[Pp][.\s]/.test(wl)) break;
+        if(/per person|over time|daily wage/i.test(wl)) continue;
+        if(/[=]\s*[\d.]+\s*(lm|m|sq)/i.test(wl)) workLines.push(wl);
+      }
+      if(names.length > 0) groups.push({names, site: currentSite, workLines});
+    }
+  }
+
+  if(!groups.length) return '';
+
+  let html = '<div class="card" style="margin-top:14px"><div class="chd">Workers on Site</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:10px">';
+
+  groups.forEach(function(g){
+    const siteKey = g.site === 'both' ? '572' : g.site;
+    const color = siteColors[siteKey] || 'var(--ink2)';
+    const siteTag = g.site === 'both' ? '572 + Basatin' : (siteLabels[g.site] || g.site);
+    const nameStr = g.names.map(function(n){ return n.charAt(0).toUpperCase()+n.slice(1).toLowerCase(); }).join(' + ');
+    let card = '<div style="background:var(--bg2);border-radius:var(--border-radius-md);padding:8px 10px;border:.5px solid var(--border3)">';
+    card += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    card += '<div style="font-size:12px;font-weight:500;color:var(--ink1)">'+nameStr+'</div>';
+    card += '<span style="font-size:10px;padding:2px 6px;border-radius:99px;background:var(--bg1);color:'+color+';border:.5px solid '+color+'">'+siteTag+'</span>';
+    card += '</div>';
+    if(g.workLines.length > 0){
+      card += '<div style="font-size:10px;color:var(--ink3);line-height:1.7">';
+      g.workLines.slice(0,3).forEach(function(wl){ card += '<div>'+wl+'</div>'; });
+      card += '</div>';
+    }
+    card += '</div>';
+    html += card;
+  });
+
+  html += '</div></div>';
+  return html;
+}
+
+
+// ══════════ WORKER ROI ══════════
+const CORE_COST = {
+  'Billal':r2(1100/26),'Bilal':r2(1100/26),
+  'Singlesh':r2(1100/26),'Singlish':r2(1100/26),
+  'Faruk':r2(1400/26),'Farooq':r2(1400/26),
+  'Gofur':r2(1400/26),'Gafur':r2(1400/26),
+  'Kulwant':r2(1100/26),
+  'Dharampal':r2(1400/26),'Dharampaul':r2(1400/26),
+  'Sujon':r2(1000/26),'Titu':r2(1136/26),
+  'Siraj':r2(1100/26),'Jashem':r2(1136/26),
+  'Josem':r2(1100/26),'Josam':r2(1100/26),'Josim':r2(1100/26)
+};
+const DW_COST = {
+  'Ranjon':110,'Shakibul':110,'Mahical':100,'Israil':100,'Israel':100,
+  'Josue':100,'Jousue':100,'Sojol':120,'Don':100,'Deu':100,'Tite':100,
+  'Jado':100,'Jenpaul':100,'Mustaq':120,'Remy':100,
+  'Etienne':100,'Evod':105,'Ebod':105,'Felix':100,'Fleix':100,'Altab':100
+};
+// Canonical name (handle spelling variants)
+function canonName(n){
+  const nm = n.trim();
+  if(/^bill?al$/i.test(nm)) return 'Bilal';
+  if(/^(singl|single)(e?s|ish|sh)$/i.test(nm)) return 'Singlesh';
+  if(/^(faruk|farooq)$/i.test(nm)) return 'Faruk';
+  if(/^(gofur|gafur)$/i.test(nm)) return 'Gofur';
+  if(/^(dharampal|dharampaul)$/i.test(nm)) return 'Dharampal';
+  if(/^(josem|josam|josim)$/i.test(nm)) return 'Josem';
+  if(/^(josue|jousue)$/i.test(nm)) return 'Josue';
+  if(/^(evod|ebod)$/i.test(nm)) return 'Ebod';
+  if(/^(felix|fleix)$/i.test(nm)) return 'Felix';
+  if(/^(israil|israel)$/i.test(nm)) return 'Israil';
+  return nm.charAt(0).toUpperCase()+nm.slice(1).toLowerCase();
+}
+
+function parseWorkerIncomes(raw, basatinTileRate){
+  if(!raw) return [];
+  const lines = raw.split('\n');
+  const workers = [];
+  let currentSite = '572';
+  let currentGroup = null;
+  const RATES = {
+    '572': {kerb:5.55, grouting:1.54, blinding:3.00, haunching:3.00, tile:12.00, tile_border:0},
+    'innovo': {kerb:7.50, grouting:1.54},
+    'basatin': {kerb:14.50, grouting:1.54, tile: basatinTileRate||13.00, tile_border:0}
+  };
+
+  function calcLineIncome(line, site){
+    const sl = line.toLowerCase();
+    const r = RATES[site] || RATES['572'];
+    const qm = line.match(/=\s*([\d.]+)\s*(?:lm|l\.m|square\s*m|m²|sq)/i);
+    const qty = qm ? parseFloat(qm[1]) : 0;
+    if(qty === 0) return 0;
+    if(/grutting|grouting/i.test(sl)) return r2(qty * (r.grouting||0));
+    if(/kerb\s*blinding/i.test(sl)) return r2(qty * (r.blinding||0));
+    if(/haunching/i.test(sl)) return r2(qty * (r.haunching||0));
+    if(/kerb/i.test(sl)) return r2(qty * (r.kerb||0) * (site==='572'?0.95:1)); // 5% retention 572
+    if(/tile.*border|border.*tile/i.test(sl)) return 0;
+    if(/taile|tile/i.test(sl) && !/cutpece|cutpiece/i.test(sl)) return r2(qty * (r.tile||0) * (site==='572'?0.95:1));
+    return 0;
+  }
+
+  for(let i=0; i<lines.length; i++){
+    const line = lines[i].trim();
+    const sl = line.toLowerCase();
+
+    // Site detection
+    if(sl.includes('site=572')) currentSite='572';
+    else if(/\(basatin\s*\+\s*572\)/i.test(line)||/\(572\s*\+\s*basatin\)/i.test(line)) currentSite='both';
+    else if(/\(basatin[^)]*\)/i.test(line)) currentSite='basatin';
+    else if(/\(innovo[^)]*\)/i.test(line)) currentSite='innovo';
+    else if(/\(572[^)]*\)/i.test(line)) currentSite='572';
+
+    // Worker group line
+    const wm = line.match(/^(\d+)\s*[Pp][.\s]+(.+)/);
+    if(wm){
+      // Save previous group
+      if(currentGroup) workers.push(currentGroup);
+      const namePart = wm[2].replace(/\([^)]*\)/g,'').trim();
+      const rawNames = namePart.split(/[.\s,]+/).filter(n=>n.length>1&&!/^(site|daily|wage|over|time|per|person|total|combined|forman|foreman)$/i.test(n));
+      const names = rawNames.map(canonName);
+      const sites = currentSite==='both'?['572','basatin']:[currentSite];
+      currentGroup = {names, sites, income:0, lines:[]};
+      continue;
+    }
+
+    // Work line — accumulate to current group
+    if(currentGroup && line.match(/[=]\s*[\d.]+/)){
+      if(/per person|over time|combined|daily wage/i.test(sl)) continue;
+      let lineInc = 0;
+      currentGroup.sites.forEach(s=>{ lineInc += calcLineIncome(line, s) / currentGroup.sites.length; });
+      currentGroup.income = r2(currentGroup.income + lineInc);
+      currentGroup.lines.push({text:line, inc:r2(lineInc)});
+    }
+  }
+  if(currentGroup) workers.push(currentGroup);
+
+  // Split groups into individual workers
+  const result = [];
+  workers.forEach(function(g){
+    const perPerson = r2(g.income / g.names.length);
+    g.names.forEach(function(name){
+      const isCore = CORE_COST[name] !== undefined;
+      const isDW = DW_COST[name] !== undefined;
+      const cost = isCore ? CORE_COST[name] : (DW_COST[name]||100);
+      const type = isCore ? 'core' : 'dw';
+      result.push({name, income: perPerson, cost, type, roi: r2(perPerson/cost), net: r2(perPerson-cost)});
+    });
+  });
+
+  return result;
+}
+
+function renderROITable(workers, type){
+  const filtered = workers.filter(w=>w.type===type).sort((a,b)=>b.income-a.income);
+  if(!filtered.length) return '<div style="font-size:12px;color:var(--ink3)">No '+type+' workers found for this day.</div>';
+
+  let html = '<table style="width:100%;font-size:12px;border-collapse:collapse">';
+  html += '<thead><tr style="border-bottom:.5px solid var(--border2)">';
+  html += '<th style="text-align:left;padding:6px 4px">Name</th>';
+  html += '<th style="text-align:right;padding:6px 4px">Income</th>';
+  html += '<th style="text-align:right;padding:6px 4px">Cost/Day</th>';
+  html += '<th style="text-align:right;padding:6px 4px">Net</th>';
+  html += '<th style="text-align:right;padding:6px 4px">ROI</th>';
+  html += '</tr></thead><tbody>';
+
+  const maxInc = filtered[0].income;
+  filtered.forEach(function(w, idx){
+    const roiColor = w.roi >= 3 ? 'var(--green)' : w.roi >= 1.5 ? 'var(--teal)' : w.roi >= 1 ? 'var(--amber)' : 'var(--red)';
+    const netColor = w.net >= 0 ? 'var(--green)' : 'var(--red)';
+    const barW = maxInc > 0 ? Math.round((w.income/maxInc)*100) : 0;
+    html += '<tr style="border-bottom:.5px solid var(--border3)">';
+    html += '<td style="padding:6px 4px">';
+    html += '<div style="display:flex;align-items:center;gap:6px">';
+    if(idx===0) html += '<span style="font-size:9px">⭐</span>';
+    else if(idx===1) html += '<span style="font-size:9px">🥈</span>';
+    else if(idx===2) html += '<span style="font-size:9px">🥉</span>';
+    else html += '<span style="font-size:9px;color:var(--ink4)">'+(idx+1)+'</span>';
+    html += '<div>';
+    html += '<div style="font-weight:500">'+w.name+'</div>';
+    html += '<div style="width:'+barW+'%;height:3px;background:'+roiColor+';border-radius:2px;margin-top:2px;min-width:2px"></div>';
+    html += '</div></div></td>';
+    html += '<td style="text-align:right;padding:6px 4px;font-weight:500">AED '+w.income.toFixed(2)+'</td>';
+    html += '<td style="text-align:right;padding:6px 4px;color:var(--ink3)">AED '+w.cost.toFixed(2)+'</td>';
+    html += '<td style="text-align:right;padding:6px 4px;font-weight:500;color:'+netColor+'">'+(w.net>=0?'+':'')+'AED '+w.net.toFixed(2)+'</td>';
+    html += '<td style="text-align:right;padding:6px 4px;font-weight:600;color:'+roiColor+'">'+w.roi.toFixed(2)+'×</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+async function loadROI(){
+  // Populate date picker
+  try {
+    const rows = await sbGet('daily_pl','?select=work_date&order=work_date.desc&limit=200');
+    const sel = document.getElementById('roiDate');
+    sel.innerHTML = '<option value="">— pick a date —</option>' +
+      rows.map(r=>'<option value="'+r.work_date+'">'+fmt_date(r.work_date)+'</option>').join('');
+  } catch(e){ console.error(e); }
+
+  // Load cumulative data
+  loadROICumulative();
+}
+
+async function loadROICumulative(){
+  try {
+    const rows = await sbGet('daily_pl','?select=work_date,whatsapp_raw&order=work_date.asc&limit=200');
+    const cumCore = {}, cumDW = {};
+
+    rows.forEach(function(row){
+      if(!row.whatsapp_raw) return;
+      const tileRate = row.work_date < '2026-04-01' ? 15 : 13;
+      const workers = parseWorkerIncomes(row.whatsapp_raw, tileRate);
+      workers.forEach(function(w){
+        const bucket = w.type==='core' ? cumCore : cumDW;
+        if(!bucket[w.name]) bucket[w.name] = {income:0, cost:0, days:0};
+        bucket[w.name].income = r2(bucket[w.name].income + w.income);
+        bucket[w.name].cost   = r2(bucket[w.name].cost + w.cost);
+        bucket[w.name].days++;
+      });
+    });
+
+    // Render cumulative summary KPIs
+    const totalCoreInc = Object.values(cumCore).reduce((s,v)=>s+v.income,0);
+    const totalCoreCost = Object.values(cumCore).reduce((s,v)=>s+v.cost,0);
+    const totalDWInc = Object.values(cumDW).reduce((s,v)=>s+v.income,0);
+    const totalDWCost = Object.values(cumDW).reduce((s,v)=>s+v.cost,0);
+    const coreROI = totalCoreCost>0 ? r2(totalCoreInc/totalCoreCost) : 0;
+    const dwROI = totalDWCost>0 ? r2(totalDWInc/totalDWCost) : 0;
+
+    document.getElementById('roiCumulative').innerHTML = `
+      <div class="g2" style="gap:8px;margin-bottom:10px">
+        <div style="background:var(--bg2);border-radius:var(--border-radius-md);padding:10px 12px;border:.5px solid var(--border3)">
+          <div style="font-size:10px;color:var(--ink3);margin-bottom:4px">CORE — Total income generated</div>
+          <div style="font-size:18px;font-weight:500;color:var(--teal)">AED ${f(totalCoreInc)}</div>
+          <div style="font-size:11px;color:var(--ink3)">Cost: AED ${f(totalCoreCost)} · ROI: <strong style="color:${coreROI>=2?'var(--green)':'var(--amber)'}">${coreROI.toFixed(2)}×</strong></div>
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--border-radius-md);padding:10px 12px;border:.5px solid var(--border3)">
+          <div style="font-size:10px;color:var(--ink3);margin-bottom:4px">DAILY WAGE — Total income generated</div>
+          <div style="font-size:18px;font-weight:500;color:var(--amber)">AED ${f(totalDWInc)}</div>
+          <div style="font-size:11px;color:var(--ink3)">Cost: AED ${f(totalDWCost)} · ROI: <strong style="color:${dwROI>=2?'var(--green)':'var(--amber)'}">${dwROI.toFixed(2)}×</strong></div>
+        </div>
+      </div>`;
+
+    // Render best performers tables
+    function renderCumTable(bucket){
+      const sorted = Object.entries(bucket).map(([name,v])=>({
+        name, income:v.income, cost:v.cost, days:v.days,
+        roi:r2(v.income/v.cost), net:r2(v.income-v.cost), avgInc:r2(v.income/v.days)
+      })).sort((a,b)=>b.roi-a.roi);
+
+      if(!sorted.length) return '<div style="font-size:12px;color:var(--ink3)">No data.</div>';
+      let html = '<table style="width:100%;font-size:12px;border-collapse:collapse">';
+      html += '<thead><tr style="border-bottom:.5px solid var(--border2)">';
+      html += '<th style="text-align:left;padding:5px 4px">Name</th>';
+      html += '<th style="text-align:right;padding:5px 4px">Days</th>';
+      html += '<th style="text-align:right;padding:5px 4px">Total Income</th>';
+      html += '<th style="text-align:right;padding:5px 4px">Total Cost</th>';
+      html += '<th style="text-align:right;padding:5px 4px">Avg/Day</th>';
+      html += '<th style="text-align:right;padding:5px 4px">ROI</th>';
+      html += '</tr></thead><tbody>';
+
+      sorted.forEach(function(w, idx){
+        const roiColor = w.roi>=3?'var(--green)':w.roi>=2?'var(--teal)':w.roi>=1?'var(--amber)':'var(--red)';
+        const medal = idx===0?'⭐':idx===1?'🥈':idx===2?'🥉':''+(idx+1);
+        html += '<tr style="border-bottom:.5px solid var(--border3)">';
+        html += '<td style="padding:5px 4px"><span style="font-size:9px;margin-right:4px">'+medal+'</span><strong>'+w.name+'</strong></td>';
+        html += '<td style="text-align:right;padding:5px 4px;color:var(--ink3)">'+w.days+'</td>';
+        html += '<td style="text-align:right;padding:5px 4px;font-weight:500">AED '+f(w.income)+'</td>';
+        html += '<td style="text-align:right;padding:5px 4px;color:var(--ink3)">AED '+f(w.cost)+'</td>';
+        html += '<td style="text-align:right;padding:5px 4px">AED '+w.avgInc.toFixed(0)+'</td>';
+        html += '<td style="text-align:right;padding:5px 4px;font-weight:700;color:'+roiColor+'">'+w.roi.toFixed(2)+'×</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    document.getElementById('roiCoreBest').innerHTML = renderCumTable(cumCore);
+    document.getElementById('roiDWBest').innerHTML = renderCumTable(cumDW);
+
+  } catch(e){
+    console.error('ROI cumulative error:', e);
+    document.getElementById('roiCumulative').innerHTML = '<div style="color:var(--red);font-size:12px">Error: '+e.message+'</div>';
+  }
+}
+
+async function loadROIDay(){
+  const dateStr = document.getElementById('roiDate').value;
+  if(!dateStr) return;
+
+  document.getElementById('roiDayDetail').style.display = 'none';
+  document.getElementById('roiDayKPIs').style.display = 'none';
+
+  try {
+    const rows = await sbGet('daily_pl','?work_date=eq.'+dateStr+'&select=whatsapp_raw,core_present,dw_present,total_workers');
+    if(!rows.length || !rows[0].whatsapp_raw){
+      alert('No WhatsApp data saved for this date — ROI analysis requires the raw message.');
+      return;
+    }
+    const d = rows[0];
+    const tileRate = dateStr < '2026-04-01' ? 15 : 13;
+    const workers = parseWorkerIncomes(d.whatsapp_raw, tileRate);
+
+    const core = workers.filter(w=>w.type==='core');
+    const dw   = workers.filter(w=>w.type==='dw');
+
+    const coreInc  = core.reduce((s,w)=>s+w.income,0);
+    const coreCost = core.reduce((s,w)=>s+w.cost,0);
+    const dwInc    = dw.reduce((s,w)=>s+w.income,0);
+    const dwCost   = dw.reduce((s,w)=>s+w.cost,0);
+    const coreROI  = coreCost>0 ? r2(coreInc/coreCost) : 0;
+    const dwROI    = dwCost>0 ? r2(dwInc/dwCost) : 0;
+
+    // KPIs
+    document.getElementById('roiCoreCount').textContent = core.length+'P';
+    document.getElementById('roiCoreCost').textContent = 'Cost: AED '+coreCost.toFixed(2)+' · Income: AED '+coreInc.toFixed(2);
+    document.getElementById('roiDWCount').textContent = dw.length+'P';
+    document.getElementById('roiDWCost').textContent = 'Cost: AED '+dwCost.toFixed(2)+' · Income: AED '+dwInc.toFixed(2);
+    document.getElementById('roiCoreROI').textContent = coreROI.toFixed(2)+'×';
+    document.getElementById('roiCoreROI').style.color = coreROI>=2?'var(--green)':coreROI>=1?'var(--amber)':'var(--red)';
+    document.getElementById('roiDWROI').textContent = dwROI.toFixed(2)+'×';
+    document.getElementById('roiDWROI').style.color = dwROI>=2?'var(--green)':dwROI>=1?'var(--amber)':'var(--red)';
+
+    document.getElementById('roiDayKPIs').style.display = 'block';
+
+    // Tables
+    document.getElementById('roiCoreTable').innerHTML = renderROITable(workers,'core');
+    document.getElementById('roiDWTable').innerHTML = renderROITable(workers,'dw');
+    document.getElementById('roiDayDetail').style.display = 'block';
+
+  } catch(e){
+    console.error('ROI day error:', e);
+    alert('Error: '+e.message);
+  }
 }
 
 </script>
