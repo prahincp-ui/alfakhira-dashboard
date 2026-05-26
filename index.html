@@ -147,6 +147,9 @@ tr:hover td{background:var(--surface2)}
   <button class="nb" onclick="show(&#39;wf&#39;,this)">Workforce</button>
   <button class="nb active" onclick="show(&#39;oh&#39;,this)">Overhead</button>
   <button class="nb" onclick="show(&#39;perf&#39;,this)">Performance</button>
+  <button class="nb" onclick="show('p572',this);loadProjectPage('572')">572 Hilalco</button>
+  <button class="nb" onclick="show('pinn',this);loadProjectPage('innovo')">Innovo</button>
+  <button class="nb" onclick="show('pbas',this);loadProjectPage('basatin')">Basatin</button>
   <button class="nb" onclick="show(&#39;inv&#39;,this)">Invoice Tracker</button>
   <button class="nb" onclick="show(&#39;inp&#39;,this)">Daily Input</button>
 </nav>
@@ -1576,6 +1579,20 @@ tr:hover td{background:var(--surface2)}
 <!-- ══════════ WORKER ROI ══════════ -->
 <div id="roi" class="sec">
 
+  <!-- PROJECT ROI -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="chd">Project ROI — All Time</div>
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Income vs total cost (worker salary + overhead share) per project · which project gives best return</div>
+    <div id="projectROI"><div class="loading"><div class="spinner"></div>Calculating...</div></div>
+  </div>
+
+  <!-- PROJECT ROI BY WORK TYPE -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="chd">ROI by Work Type — Across All Projects</div>
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Which type of work gives the best return on cost</div>
+    <div id="workTypeROI"><div class="loading"><div class="spinner"></div>Calculating...</div></div>
+  </div>
+
   <!-- DATE PICKER + SUMMARY -->
   <div class="g2" style="margin-bottom:14px;align-items:start">
     <div class="card">
@@ -2058,6 +2075,22 @@ tr:hover td{background:var(--surface2)}
   </div>
 </div>
 
+
+<!-- ══════════ PROJECT PAGE: 572 ══════════ -->
+<div id="p572" class="sec">
+  <div id="p572content"><div class="loading"><div class="spinner"></div>Loading 572 project data...</div></div>
+</div>
+
+<!-- ══════════ PROJECT PAGE: INNOVO ══════════ -->
+<div id="pinn" class="sec">
+  <div id="pinnContent"><div class="loading"><div class="spinner"></div>Loading Innovo project data...</div></div>
+</div>
+
+<!-- ══════════ PROJECT PAGE: BASATIN ══════════ -->
+<div id="pbas" class="sec">
+  <div id="pbasContent"><div class="loading"><div class="spinner"></div>Loading Basatin project data...</div></div>
+</div>
+
 <!-- ══════════ INVOICE TRACKER ══════════ -->
 <div id="inv" class="sec">
 
@@ -2066,6 +2099,9 @@ tr:hover td{background:var(--surface2)}
     <div class="chd">Production &amp; Invoice Summary — Select Month</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <select id="invMonth" style="background:var(--surface2);border:.5px solid var(--border2);border-radius:var(--rs);padding:7px 12px;font-size:12px;font-family:&#39;DM Mono&#39;,monospace;color:var(--ink);outline:none">
+        <option value="2026-01">January 2026</option>
+        <option value="2026-02">February 2026</option>
+        <option value="2026-03">March 2026</option>
         <option value="2026-04">April 2026</option>
         <option value="2026-05" selected="">May 2026</option>
         <option value="2026-06">June 2026</option>
@@ -2148,7 +2184,7 @@ Taile plaza =30.Square m)13.33H
       <button class="btn gld" onclick="loadPerf()">Analyse Day</button>
     </div>
     <p style="font-size:11px;color:var(--ink3);line-height:1.6">
-      Shows each worker's income generated vs their cost. Overhead (AED 1,100/day) is split equally across <strong>all workers present</strong> — the more people on site, the smaller each person's overhead burden.
+      Shows each worker's income generated vs their cost. Overhead is split equally across <strong>all workers present</strong> — the more people on site, the smaller each person's overhead burden.
     </p>
   </div>
 
@@ -2454,72 +2490,48 @@ async function loadDayDetail(dateStr){
     try {
       const items = await sbGet('work_items',`?work_date=eq.${dateStr}&order=site.asc,work_type.asc`);
       if(items.length){
-
-        // ── Parse worker groups from raw message for name lookup ──
         const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
-        const siteClass = {'572':'s572','innovo':'sinn','basatin':'sbas'};
         const siteColor = {'572':'var(--teal)','innovo':'var(--purple)','basatin':'var(--amber)'};
+        const siteOrder = ['572','innovo','basatin'];
 
-        // Build a lookup: site+worktype+qty -> workerNames from raw message
+        // ── Build name lookup from whatsapp_raw ──
         const rawLookup = {};
         if(d.whatsapp_raw){
           const rawLines = d.whatsapp_raw.split('\n');
           let curNames = ''; let curSite = '572';
           rawLines.forEach(function(rl){
-            const rlt = rl.trim();
-            if(!rlt) return;
-            const rll = rlt.toLowerCase();
-            if(rll.includes('site=572')) curSite='572';
+            const rlt = rl.trim(); if(!rlt) return;
+            if(/site=572/i.test(rlt)) curSite='572';
             else if(/\(basatin\s*\+\s*572\)/i.test(rlt)||/\(572\s*\+\s*basatin\)/i.test(rlt)) curSite='both';
             else if(/\(basatin[^)]*\)/i.test(rlt)) curSite='basatin';
             else if(/\(innovo[^)]*\)/i.test(rlt)) curSite='innovo';
             else if(/\(572[^)]*\)/i.test(rlt)) curSite='572';
-            // Worker group line
-            const wgm = rlt.match(/^(\d+)\s*[Pp][.\s]+([^(\n]+)/);
-            if(wgm){
-              curNames = wgm[2].replace(/\./g,' ').replace(/\s+/g,' ').trim();
-              return;
-            }
-            // Work line — store lookup by qty
+            const wgm = rlt.match(/^(\d+)\s*[Pp][\.\s]+([^(\n]+)/);
+            if(wgm){ curNames = wgm[2].replace(/\./g,' ').replace(/\s+/g,' ').trim(); return; }
             const qm = rlt.match(/([\d.]+)\s*\.?\s*(Square\s*m|Lm|LM)/i);
             if(qm && curNames){
               const qty = parseFloat(qm[1]);
-              const sites = curSite === 'both' ? ['572','basatin'] : [curSite];
-              sites.forEach(function(s){
-                const key = s + '_' + qty.toFixed(1);
-                if(!rawLookup[key]) rawLookup[key] = [];
+              const sites2 = curSite==='both'?['572','basatin']:[curSite];
+              sites2.forEach(function(s){
+                const key = s+'_'+qty.toFixed(1);
+                if(!rawLookup[key]) rawLookup[key]=[];
                 rawLookup[key].push(curNames);
               });
             }
           });
         }
 
-        // ── 1. DETAILED TABLE grouped by site ──
-        // Group items by site preserving order
-        const siteOrder = ['572','innovo','basatin'];
-        const itemsBySite = {};
-        siteOrder.forEach(s => itemsBySite[s] = []);
-        items.forEach(it => { if(itemsBySite[it.site]) itemsBySite[it.site].push(it); });
+        // ── Group items by site ──
+        const itemsBySite = {'572':[],'innovo':[],'basatin':[]};
+        items.forEach(function(it){ if(itemsBySite[it.site]) itemsBySite[it.site].push(it); });
 
+        // ── SECTION 1: Work Items by Worker Group ──
         let detailHTML = '';
         siteOrder.forEach(function(site){
           const siteItems = itemsBySite[site];
           if(!siteItems.length) return;
-
-          // Group consecutive same-worker items
-          const groups = [];
-          siteItems.forEach(function(it){
-            const qty = parseFloat(it.quantity).toFixed(1);
-            const key = site + '_' + qty;
-            // Find name from lookup
-            const stored = (it.worker_names||'').replace(/\+/g,' ').trim();
-            const fromRaw = rawLookup[key] ? rawLookup[key].shift() : '';
-            const names = fromRaw || stored || '—';
-            groups.push({...it, resolvedNames: names});
-          });
-
           detailHTML += '<div style="margin-bottom:20px">';
-          detailHTML += '<div style="font-size:13px;font-weight:600;color:' + (siteColor[site]||'var(--ink2)') + ';padding:8px 0;border-bottom:.5px solid var(--border2);margin-bottom:4px">' + (siteLabel[site]||site) + '</div>';
+          detailHTML += '<div style="font-size:13px;font-weight:700;color:'+siteColor[site]+';padding:8px 0 6px;border-bottom:1.5px solid '+siteColor[site]+';margin-bottom:6px">'+siteLabel[site]+'</div>';
           detailHTML += '<table style="width:100%;border-collapse:collapse">';
           detailHTML += '<thead><tr style="border-bottom:.5px solid var(--border2)">';
           detailHTML += '<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--ink3)">WORKER(S)</th>';
@@ -2528,174 +2540,203 @@ async function loadDayDetail(dateStr){
           detailHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">RATE</th>';
           detailHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">INCOME</th>';
           detailHTML += '</tr></thead><tbody>';
-
-          groups.forEach(function(it){
-            const hasInc = parseFloat(it.income) > 0;
+          siteItems.forEach(function(it){
             const qty = parseFloat(it.quantity).toFixed(1);
-            // Format names cleanly
-            const nameDisplay = it.resolvedNames.split(/[+,]/).map(n=>n.trim()).filter(n=>n&&n!=='—').join(' + ') || '—';
+            const key = site+'_'+qty;
+            const stored = (it.worker_names||'').replace(/\+/g,' ').trim();
+            const fromRaw = rawLookup[key] ? rawLookup[key].shift() : '';
+            const names = (fromRaw||stored||'—').split(/[+,\s]+/).filter(n=>n.length>1).join(' + ') || '—';
+            const hasInc = parseFloat(it.income)>0;
             detailHTML += '<tr style="border-bottom:.5px solid var(--border3)">';
-            detailHTML += '<td style="padding:6px 8px;font-size:11px;font-weight:500;color:var(--ink1)">' + nameDisplay + '</td>';
-            detailHTML += '<td style="padding:6px 8px;font-size:11px;color:var(--ink2)">' + (it.work_type||'—') + '</td>';
-            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:500">' + qty + ' ' + (it.unit||'LM') + '</td>';
-            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink3)">' + (parseFloat(it.rate)>0?'AED '+parseFloat(it.rate).toFixed(2):'—') + '</td>';
-            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:' + (hasInc?'600':'400') + ';color:' + (hasInc?'var(--green)':'var(--ink3)') + '">' + (hasInc?'AED '+f(it.income):'—') + '</td>';
+            detailHTML += '<td style="padding:6px 8px;font-size:11px;font-weight:500;color:var(--ink1)">'+names+'</td>';
+            detailHTML += '<td style="padding:6px 8px;font-size:11px;color:var(--ink2)">'+(it.work_type||'—')+'</td>';
+            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:500">'+qty+' '+(it.unit||'LM')+'</td>';
+            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink3)">'+(parseFloat(it.rate)>0?'AED '+parseFloat(it.rate).toFixed(2):'—')+'</td>';
+            detailHTML += '<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:'+(hasInc?'600':'400')+';color:'+(hasInc?'var(--green)':'var(--ink3)')+'">'+( hasInc?'AED '+f(it.income):'—')+'</td>';
             detailHTML += '</tr>';
           });
-
           detailHTML += '</tbody></table></div>';
         });
 
-        // ── 2. CUMULATIVE SITE SUMMARY (work type × site matrix) ──
-        // Collect all work types across all sites
-        const WORK_TYPES = ['Kerb Fixing','Grouting','Blinding','Haunching','Tile Laying','Tile Border','Tile Cutpiece'];
-        const summary = {}; // site -> workType -> {qty, unit, income, workerSet}
-        sites.forEach(s => {
-          summary[s] = {};
-          WORK_TYPES.forEach(wt => { summary[s][wt] = {qty:0, income:0, workers: new Set()}; });
+        // ── SECTION 2: Site Summary ──
+        const WORK_TYPES_LIST = ['Kerb Fixing','Grouting','Blinding','Haunching','Tile Laying','Tile Border','Tile Cutpiece'];
+        // Build summary object
+        const smry = {};
+        siteOrder.forEach(function(s){
+          smry[s] = {};
+          WORK_TYPES_LIST.forEach(function(wt){ smry[s][wt]={qty:0,income:0,workers:new Set()}; });
         });
-
-        items.forEach(it => {
-          const s = it.site;
-          if(!summary[s]) return;
-          // Match work type loosely
-          let wt = 'Kerb Fixing';
-          const wl = (it.work_type||'').toLowerCase();
-          if(wl.includes('grouting')) wt = 'Grouting';
-          else if(wl.includes('blinding')) wt = 'Blinding';
-          else if(wl.includes('haunching')) wt = 'Haunching';
-          else if(wl.includes('border')) wt = 'Tile Border';
-          else if(wl.includes('cutpiece')||wl.includes('cut piece')) wt = 'Tile Cutpiece';
-          else if(wl.includes('tile')||wl.includes('taile')) wt = 'Tile Laying';
-          else if(wl.includes('kerb')) wt = 'Kerb Fixing';
-
-          if(!summary[s][wt]) summary[s][wt] = {qty:0, income:0, workers: new Set()};
-          summary[s][wt].qty = parseFloat((summary[s][wt].qty + parseFloat(it.quantity||0)).toFixed(2));
-          summary[s][wt].income = parseFloat((summary[s][wt].income + parseFloat(it.income||0)).toFixed(2));
-          // Add worker names
-          (it.worker_names||'').split('+').forEach(n => {
-            const nm = n.trim();
-            if(nm && nm !== '—') summary[s][wt].workers.add(nm);
-          });
+        items.forEach(function(it){
+          const s = it.site; if(!smry[s]) return;
+          let wt='Kerb Fixing';
+          const wl=(it.work_type||'').toLowerCase();
+          if(wl.includes('grouting')) wt='Grouting';
+          else if(wl.includes('blinding')) wt='Blinding';
+          else if(wl.includes('haunching')) wt='Haunching';
+          else if(wl.includes('border')) wt='Tile Border';
+          else if(wl.includes('cutpiece')||wl.includes('cut piece')) wt='Tile Cutpiece';
+          else if(wl.includes('tile')||wl.includes('taile')) wt='Tile Laying';
+          smry[s][wt].qty=parseFloat((smry[s][wt].qty+parseFloat(it.quantity||0)).toFixed(2));
+          smry[s][wt].income=parseFloat((smry[s][wt].income+parseFloat(it.income||0)).toFixed(2));
+          (it.worker_names||'').split('+').forEach(function(n){ const nm=n.trim(); if(nm&&nm!=='—') smry[s][wt].workers.add(nm); });
         });
-
-        // Build summary table rows
-        let summaryRows = '';
-        WORK_TYPES.forEach(wt => {
-          const hasAny = sites.some(s => summary[s][wt] && summary[s][wt].qty > 0);
-          const wtColor = wt.includes('Tile') ? 'var(--purple)' : 'var(--ink2)';
-          summaryRows += `<tr style="border-bottom:.5px solid var(--border3)">
-            <td style="padding:7px 8px;font-size:12px;font-weight:500;color:${wtColor}">${wt}</td>
-            ${sites.map(s => {
-              const sd = summary[s][wt];
-              if(!sd || sd.qty === 0) return `<td style="text-align:center;padding:7px 8px">
-                <span style="font-size:11px;color:var(--ink4)">—</span>
-              </td>`;
-              const wCount = sd.workers.size;
-              const unit = (wt==='Tile Laying'||wt==='Tile Border'||wt==='Tile Cutpiece') && wt==='Tile Laying' ? 'm²' : 'LM';
-              return `<td style="padding:7px 8px">
-                <div style="font-size:13px;font-weight:600;color:${siteColor[s]}">${sd.qty.toFixed(1)} <span style="font-size:10px;font-weight:400">${unit}</span></div>
-                <div style="font-size:10px;color:var(--ink3)">${wCount}P · ${sd.income>0?'AED '+sd.income.toFixed(0):'no income'}</div>
-              </td>`;
-            }).join('')}
-          </tr>`;
-        });
-
-        // Totals row
-        summaryRows += `<tr style="background:var(--bg2);font-weight:600;border-top:.5px solid var(--border2)">
-          <td style="padding:7px 8px;font-size:12px">Total Income</td>
-          ${sites.map(s => {
-            const total = WORK_TYPES.reduce((sum,wt)=>sum+(summary[s][wt]?summary[s][wt].income:0),0);
-            return `<td style="padding:7px 8px;color:${total>0?'var(--green)':'var(--ink4)'};font-size:13px">${total>0?'AED '+total.toFixed(0):'—'}</td>`;
-          }).join('')}
-        </tr>`;
-
-        // Worker cost map for difference calculation
-        const WC = {'572':{kerb:5.55,grouting:1.54,blinding:3.00,haunching:3.00,tile:12.00,tile_border:12.00},
-                    'innovo':{kerb:7.50,grouting:1.54},
-                    'basatin':{kerb:14.50,grouting:1.54,tile:13.00,tile_border:0}};
-
-        // Build site summary: vertical, one site at a time with cost+income+diff
-        const WORK_TYPES_ORD = ['Kerb Fixing','Grouting','Blinding','Haunching','Tile Laying','Tile Border','Tile Cutpiece'];
-        const siteDefs2 = [{key:'572',label:'Hilalco 572',color:'var(--teal)',retention:true},
-                           {key:'innovo',label:'Innovo',color:'var(--purple)',retention:false},
-                           {key:'basatin',label:'Basatin',color:'var(--amber)',retention:false}];
 
         let siteSummaryHTML = '';
-        siteDefs2.forEach(function(sd){
-          const sd_data = summary[sd.key];
-          let totalInc = 0, totalCost = 0;
-          const WORK_TYPES_ORD2 = ['Kerb Fixing','Grouting','Blinding','Haunching','Tile Laying','Tile Border','Tile Cutpiece'];
+        const siteDefs = [{key:'572',label:'Hilalco 572',color:'var(--teal)'},
+                          {key:'innovo',label:'Innovo',color:'var(--purple)'},
+                          {key:'basatin',label:'Basatin',color:'var(--amber)'}];
+        // Worker daily costs lookup (salary ÷ 26 per person)
+        const CORE_DAILY = {'Bilal':42.31,'Billal':42.31,'Singlesh':42.31,'Singlish':42.31,
+          'Faruk':53.85,'Farooq':53.85,'Gofur':53.85,'Gafur':53.85,'Kulwant':42.31,
+          'Dharampal':53.85,'Dharampaul':53.85,'Sujon':38.46,'Titu':43.69,
+          'Siraj':42.31,'Jashem':43.69,'Josem':42.31,'Josam':42.31};
+        const DW_DAILY_RATE = {'Ranjon':110,'Shakibul':110,'Mahical':100,'Israil':100,'Israel':100,
+          'Josue':100,'Jousue':100,'Sojol':120,'Don':100,'Deu':100,'Tite':100,
+          'Jado':100,'Jenpaul':100,'Mustaq':120,'Remy':100,'Etienne':100,
+          'Evod':105,'Ebod':105,'Felix':100,'Fleix':100,'Altab':100};
+        // Note: Sujon is core (AED 1,000/mo) — already in CORE_DAILY above
 
-          let trows = '';
-          WORK_TYPES_ORD2.forEach(function(wt){
-            const d2 = sd_data[wt];
-            const qty = d2 ? d2.qty : 0;
-            const inc = d2 ? d2.income : 0;
-            const wCount = d2 ? d2.workers.size : 0;
-            const unit = wt === 'Tile Laying' ? 'm²' : 'LM';
+        // Estimate worker cost per site
+        // Method 1: use names from worker_names if available
+        // Method 2: fallback — split total cost proportionally by income share per site
+        const siteCostMap = {'572':0,'innovo':0,'basatin':0};
+        const costedWorkers = new Set();
+        let hasNameData = false;
 
-            // Estimate worker cost for this work type (salary portion for people doing this work)
-            // We use: income / ROI_benchmark — or just show income vs income (no separate cost per line)
-            // Instead show: workers involved, qty, income
-            if(qty === 0){
-              trows += '<tr style="opacity:.4;border-bottom:.5px solid var(--border3)">';
-              trows += '<td style="padding:6px 8px;font-size:11px;color:var(--ink4)">' + wt + '</td>';
-              trows += '<td style="text-align:center;padding:6px 8px;font-size:11px;color:var(--ink4)">0 ' + unit + '</td>';
-              trows += '<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink4)">—</td>';
-              trows += '<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink4)">—</td>';
-              trows += '</tr>';
+        items.forEach(function(it){
+          const names = (it.worker_names||'').split('+').map(n=>n.trim()).filter(n=>n&&n!=='—'&&n.length>1);
+          if(names.length > 0) hasNameData = true;
+          names.forEach(function(nm){
+            const key = nm.replace(/\s+/g,'');
+            if(costedWorkers.has(key)) return;
+            costedWorkers.add(key);
+            const cost = CORE_DAILY[nm]||CORE_DAILY[key]||DW_DAILY_RATE[nm]||DW_DAILY_RATE[key]||0;
+            if(cost > 0) siteCostMap[it.site] = (siteCostMap[it.site]||0) + cost;
+          });
+        });
+
+        // Fallback: no names in DB — estimate from total_workers and income split
+        if(!hasNameData){
+          const totalWorkers = d.total_workers || 1;
+          const avgDailyCost = (parseFloat(d.total_cost||0) - _baseOverhead) / totalWorkers;
+          const totalInc = parseFloat(d.total_income||1);
+          // Distribute worker cost proportionally by site income
+          ['572','innovo','basatin'].forEach(function(s){
+            const siteInc = WORK_TYPES_LIST.reduce((sum,wt)=>{const dd2=smry[s][wt];return sum+(dd2?dd2.income:0);},0);
+            siteCostMap[s] = parseFloat(((siteInc/totalInc) * avgDailyCost * totalWorkers).toFixed(2));
+          });
+        }
+
+        siteDefs.forEach(function(sd){
+          let totalInc=0, totalCost=0;
+          let trows='';
+          WORK_TYPES_LIST.forEach(function(wt){
+            const dd2=smry[sd.key][wt];
+            const qty=dd2?dd2.qty:0;
+            const inc=dd2?dd2.income:0;
+            const wCount=dd2?dd2.workers.size:0;
+            const unit=wt==='Tile Laying'?'m²':'LM';
+            if(qty===0){
+              const zeroColor = (wt==='Tile Laying'||wt==='Tile Border') ? 'rgba(200,100,100,.5)' : 'var(--ink4)';
+              trows+='<tr style="opacity:.4;border-bottom:.5px solid var(--border3)">';
+              trows+='<td style="padding:6px 8px;font-size:11px;color:'+zeroColor+'">'+wt+' <span style="font-size:9px">←push</span></td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:11px;color:'+zeroColor+'">0 '+unit+'</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink4)">—</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink4)">—</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:11px;color:var(--ink4)">—</td>';
+              trows+='</tr>';
             } else {
-              totalInc += inc;
-              const isTile = wt.startsWith('Tile');
-              trows += '<tr style="border-bottom:.5px solid var(--border3)">';
-              trows += '<td style="padding:6px 8px">';
-              trows += '<div style="font-size:12px;font-weight:500;color:' + (isTile?'var(--purple)':'var(--ink1)') + '">' + wt + '</div>';
-              trows += '<div style="font-size:10px;color:var(--ink3)">' + wCount + ' worker' + (wCount!==1?'s':'') + '</div>';
-              trows += '</td>';
-              trows += '<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600">' + qty.toFixed(1) + ' <span style="font-size:10px;font-weight:400;color:var(--ink3)">' + unit + '</span></td>';
-              trows += '<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600;color:var(--green)">' + (inc>0?'AED '+inc.toFixed(0):'—') + '</td>';
-              trows += '<td style="text-align:right;padding:6px 8px">';
-              if(inc > 0){
-                // Show rate being earned
-                const rateEarned = (qty > 0) ? (inc/qty).toFixed(2) : '0';
-                trows += '<span style="font-size:10px;color:var(--ink3)">@ AED '+rateEarned+'/'+unit+'</span>';
-              }
-              trows += '</td>';
-              trows += '</tr>';
+              totalInc+=inc;
+              const isTile=wt.startsWith('Tile');
+              // Estimate worker cost for this work type proportional to income share
+              const siteTotal = WORK_TYPES_LIST.reduce((s,w2)=>{const d2=smry[sd.key][w2];return s+(d2?d2.income:0);},0);
+              const incShare = siteTotal>0 ? inc/siteTotal : 0;
+              const wtCost = parseFloat(((siteCostMap[sd.key]||0) * incShare).toFixed(2));
+              totalCost += wtCost;
+              const diff = parseFloat((inc - wtCost).toFixed(2));
+              const diffColor = diff>=0?'var(--green)':'var(--red)';
+              trows+='<tr style="border-bottom:.5px solid var(--border3)">';
+              trows+='<td style="padding:6px 8px">';
+              trows+='<div style="font-size:12px;font-weight:500;color:'+(isTile?'var(--purple)':'var(--ink1)')+'">'+wt+'</div>';
+              trows+='<div style="font-size:10px;color:var(--ink3)">'+wCount+'P</div></td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:600">'+qty.toFixed(1)+' <span style="font-size:10px;font-weight:400;color:var(--ink3)">'+unit+'</span></td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:12px;color:var(--ink3)">'+( wtCost>0?'AED '+wtCost.toFixed(0):'—')+'</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600;color:'+(inc>0?'var(--green)':'var(--ink3)')+'">'+( inc>0?'AED '+inc.toFixed(0):'—')+'</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:700;color:'+diffColor+'">'+(diff>=0?'+':'')+'AED '+Math.abs(diff).toFixed(0)+'</td>';
+              trows+='</tr>';
             }
           });
-
-          siteSummaryHTML += '<div class="card" style="margin-bottom:12px">';
-          siteSummaryHTML += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
-          siteSummaryHTML += '<div style="font-size:14px;font-weight:600;color:' + sd.color + '">' + sd.label + '</div>';
-          siteSummaryHTML += '<div style="font-size:15px;font-weight:600;color:' + (totalInc>0?'var(--green)':'var(--ink4)') + '">' + (totalInc>0?'AED '+totalInc.toFixed(0):'No work today') + '</div>';
-          siteSummaryHTML += '</div>';
-          siteSummaryHTML += '<table style="width:100%;border-collapse:collapse">';
-          siteSummaryHTML += '<thead><tr style="border-bottom:.5px solid var(--border2)">';
-          siteSummaryHTML += '<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--ink3);width:35%">WORK TYPE</th>';
-          siteSummaryHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">QTY</th>';
-          siteSummaryHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">INCOME</th>';
-          siteSummaryHTML += '<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">RATE EARNED</th>';
-          siteSummaryHTML += '</tr></thead><tbody>' + trows + '</tbody>';
-          siteSummaryHTML += '<tfoot><tr style="border-top:.5px solid var(--border2);background:var(--bg2)">';
-          siteSummaryHTML += '<td colspan="2" style="padding:7px 8px;font-size:12px;font-weight:700">Total Income</td>';
-          siteSummaryHTML += '<td colspan="2" style="text-align:right;padding:7px 8px;font-size:14px;font-weight:700;color:' + (totalInc>0?'var(--green)':'var(--ink4)') + '">' + (totalInc>0?'AED '+totalInc.toFixed(0):'—') + '</td>';
-          siteSummaryHTML += '</tr></tfoot></table></div>';
+          const totalDiff = totalInc - totalCost;
+          siteSummaryHTML+='<div class="card" style="margin-bottom:14px">';
+          siteSummaryHTML+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+          siteSummaryHTML+='<div style="font-size:15px;font-weight:700;color:'+sd.color+'">'+sd.label+'</div>';
+          siteSummaryHTML+='<div style="text-align:right">';
+          if(totalInc>0){
+            siteSummaryHTML+='<div style="font-size:16px;font-weight:700;color:var(--green)">AED '+totalInc.toFixed(0)+' income</div>';
+            siteSummaryHTML+='<div style="font-size:12px;color:'+(totalDiff>=0?'var(--green)':'var(--red)')+'">Net vs worker cost: '+(totalDiff>=0?'+':'')+'AED '+totalDiff.toFixed(0)+'</div>';
+          } else {
+            siteSummaryHTML+='<div style="font-size:13px;color:var(--ink4)">No work today</div>';
+          }
+          siteSummaryHTML+='</div></div>';
+          siteSummaryHTML+='<table style="width:100%;border-collapse:collapse">';
+          siteSummaryHTML+='<thead><tr style="border-bottom:.5px solid var(--border2)">';
+          siteSummaryHTML+='<th style="text-align:left;padding:5px 8px;font-size:10px;color:var(--ink3)">WORK TYPE</th>';
+          siteSummaryHTML+='<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">QTY</th>';
+          siteSummaryHTML+='<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">WORKER COST</th>';
+          siteSummaryHTML+='<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">INCOME</th>';
+          siteSummaryHTML+='<th style="text-align:right;padding:5px 8px;font-size:10px;color:var(--ink3)">DIFFERENCE</th>';
+          siteSummaryHTML+='</tr></thead>';
+          siteSummaryHTML+='<tbody>'+trows+'</tbody>';
+          siteSummaryHTML+='<tfoot><tr style="border-top:.5px solid var(--border2);background:var(--bg2)">';
+          siteSummaryHTML+='<td colspan="2" style="padding:7px 8px;font-size:12px;font-weight:700">Total</td>';
+          siteSummaryHTML+='<td style="text-align:right;padding:7px 8px;font-size:12px;color:var(--ink3)">AED '+totalCost.toFixed(0)+'</td>';
+          siteSummaryHTML+='<td style="text-align:right;padding:7px 8px;font-size:14px;font-weight:700;color:'+(totalInc>0?'var(--green)':'var(--ink4)')+'">'+( totalInc>0?'AED '+totalInc.toFixed(0):'—')+'</td>';
+          siteSummaryHTML+='<td style="text-align:right;padding:7px 8px;font-size:14px;font-weight:700;color:'+(totalDiff>=0?'var(--green)':'var(--red)')+'">'+(totalDiff>=0?'+':'')+'AED '+Math.abs(totalDiff).toFixed(0)+'</td>';
+          siteSummaryHTML+='</tr></tfoot></table></div>';
         });
 
         itemsHTML = `
-        <div class="card" style="margin-top:14px">
-          <div class="chd">Work Items — ${fmt_date(dateStr)} — by Worker Group</div>
-          <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Each group shows worker names · work type · qty · income</div>
-          ${detailHTML}
-        </div>
-        <div class="card" style="margin-top:14px">
-          <div class="chd">Site Summary — ${fmt_date(dateStr)}</div>
-          <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Zero = not done that day — push team where you see gaps 🔴</div>
-          ${siteSummaryHTML}
-        </div>`;
-
+          <div class="card" style="margin-top:14px">
+            <div class="chd">Work Items — ${fmt_date(dateStr)} — by Worker Group</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">Workers named per group · sorted by site</div>
+            ${detailHTML}
+          </div>
+          <div class="card" style="margin-top:14px">
+            <div class="chd">Site Summary — ${fmt_date(dateStr)}</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:12px">0 = not done that day — push team where you see gaps</div>
+            ${siteSummaryHTML}
+          ${(function(){
+            const allInc = ['572','innovo','basatin'].reduce(function(s,k){ return s+WORK_TYPES_LIST.reduce(function(s2,wt){ const d2=smry[k][wt]; return s2+(d2?d2.income:0); },0); },0);
+            const allWorkerCost = ['572','innovo','basatin'].reduce(function(s,k){ return s+(siteCostMap[k]||0); },0);
+            const netPL = parseFloat(d.net_pl||0);
+            const isPL = netPL >= 0;
+            const inc572 = WORK_TYPES_LIST.reduce(function(s,wt){ const d2=smry['572'][wt]; return s+(d2?d2.income:0); },0);
+            const incInn = WORK_TYPES_LIST.reduce(function(s,wt){ const d2=smry['innovo'][wt]; return s+(d2?d2.income:0); },0);
+            const incBas = WORK_TYPES_LIST.reduce(function(s,wt){ const d2=smry['basatin'][wt]; return s+(d2?d2.income:0); },0);
+            return '<div style="background:var(--ink);color:#f5f3ee;border-radius:var(--border-radius-lg);padding:18px 20px;margin-top:4px">' +
+              '<div style="font-size:11px;font-weight:600;letter-spacing:.08em;opacity:.55;margin-bottom:12px">FINAL P&L — ALL SITES — ' + fmt_date(dateStr) + '</div>' +
+              '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:16px">' +
+                '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">TOTAL INCOME</div>' +
+                '<div style="font-size:24px;font-weight:700;color:#6ecf8a">AED ' + f(allInc) + '</div>' +
+                '<div style="font-size:10px;opacity:.45">572 + Innovo + Basatin</div></div>' +
+                '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">WORKER COST</div>' +
+                '<div style="font-size:24px;font-weight:700;color:#f4a261">AED ' + f(allWorkerCost) + '</div>' +
+                '<div style="font-size:10px;opacity:.45">salary + wages est.</div></div>' +
+                '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">OVERHEAD</div>' +
+                '<div style="font-size:24px;font-weight:700;color:#f4a261">AED ' + _baseOverhead.toFixed(0) + '</div>' +
+                '<div style="font-size:10px;opacity:.45">fixed daily overhead</div></div>' +
+                '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">NET P&L</div>' +
+                '<div style="font-size:28px;font-weight:700;color:' + (isPL?'#6ecf8a':'#f08080') + '">' + (isPL?'+':'') + 'AED ' + f(Math.abs(netPL)) + '</div>' +
+                '<div style="font-size:11px;font-weight:600;color:' + (isPL?'#6ecf8a':'#f08080') + '">' + (isPL?'PROFIT ✓':'LOSS ✗') + '</div></div>' +
+              '</div>' +
+              '<div style="border-top:.5px solid rgba(255,255,255,.15);padding-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">' +
+                '<div><div style="font-size:10px;opacity:.5;margin-bottom:3px">Hilalco 572</div><div style="font-size:16px;font-weight:600;color:#6ecf8a">AED ' + inc572.toFixed(0) + '</div></div>' +
+                '<div><div style="font-size:10px;opacity:.5;margin-bottom:3px">Innovo</div><div style="font-size:16px;font-weight:600;color:#6ecf8a">AED ' + incInn.toFixed(0) + '</div></div>' +
+                '<div><div style="font-size:10px;opacity:.5;margin-bottom:3px">Basatin</div><div style="font-size:16px;font-weight:600;color:#6ecf8a">AED ' + incBas.toFixed(0) + '</div></div>' +
+              '</div>' +
+            '</div>';
+          })()}
+          </div>`;
       }
     } catch(e){ console.error('work items error:',e); }
 
@@ -2817,22 +2858,32 @@ async function parseAndSave(){
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
 
-  let site='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='';
+  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='';
   txt.split('\n').forEach(line=>{
     const sl = line.toLowerCase();
 
-    // ── SITE DETECTION: check whole line including inline tags like "(572)" or "(Basatin)"
-    // Site=572 heading takes priority, then inline tags on worker/work lines
-    if(sl.includes('site=572')) site='572';
-    else if(/\(572\)/.test(sl)) site='572';
-    else if(/\(innovo\)/.test(sl)||(/innovo/.test(sl)&&/^\d+p/i.test(line.trim()))) site='innovo';
-    else if(/\(basatin\)/.test(sl)||(/basatin/.test(sl)&&/^\d+p/i.test(line.trim()))) site='basatin';
-    // Worker group lines ALWAYS set site — "1P Etienne (572)" must override previous site
-    if(/^\d+p\b/i.test(line.trim())){
-      if(/\(572\)/.test(sl)) site='572';
-      else if(/\b572\b/.test(sl)) site='572';
-      else if(/innovo/.test(sl)) site='innovo';
-      else if(/basatin/.test(sl)) site='basatin';
+    // ── SITE DETECTION ──
+    // Section-level headers (Site=572, Site=Basatin etc) set the section site
+    if(sl.includes('site=572')){ site='572'; sectionSite='572'; }
+    else if(/^site=innovo/i.test(line.trim())){ site='innovo'; sectionSite='innovo'; }
+    else if(/^site=basatin/i.test(line.trim())){ site='basatin'; sectionSite='basatin'; }
+    // Worker group lines: inline tag overrides ONLY if different from section site
+    // BUT: if sectionSite=572 and group says (Basatin), trust the section header
+    // because Bilal sometimes writes wrong site on group lines
+    else if(/^\d+p\b/i.test(line.trim())){
+      if(/\(572\)/i.test(sl)||/\b572\b/.test(sl)) site='572';
+      else if(/\(innovo\)/i.test(sl)||/innovo/i.test(sl)) site='innovo';
+      else if(/\(basatin\s*\+\s*572\)/i.test(sl)||/\(572\s*\+\s*basatin\)/i.test(sl)) site='both';
+      else if(/\(basatin[^)]*\)/i.test(sl)||/basatin/i.test(sl)){
+        // Only override to basatin if section header is NOT 572
+        // (Bilal often writes (Basatin) on group lines even in 572 section)
+        if(sectionSite !== '572') site='basatin';
+        // else keep site as sectionSite (572)
+      }
+      else {
+        // No inline tag — keep current section site
+        site = sectionSite;
+      }
     }
 
     // Extract worker names from lines like "2P. Bilal. Singlesh" — carry forward to work lines
@@ -3062,6 +3113,8 @@ async function parseAndSave(){
     document.getElementById('saveResult').innerHTML = `
       <div class="alert ok"><div>✅ <strong>Saved successfully!</strong> ${fmt_date(workDate)} — AED ${net>=0?'+':''}${f(net)} recorded permanently. Go to Daily P&L tab to see it.</div></div>`;
     status.textContent = '✅ Saved!';
+    // Clear project page cache so pages reload with fresh data
+    if(typeof loadedProjects !== 'undefined') Object.keys(loadedProjects).forEach(function(k){ delete loadedProjects[k]; });
     await loadOverview();
     await loadDailyList();
 
@@ -3119,7 +3172,8 @@ const CORE_LIST = [
   'Billal','Bilal','Singlesh','Singlish',
   'Faruk','Farooq','Gofur','Gafur',
   'Kulwant','Dharampal','Dharampaul',
-  'Sujon','Titu','Siraj','Jashem'
+  'Sujon','Titu','Siraj','Jashem',
+  'Josem','Josam','Josim'
 ];
 const OVERHEAD_LIST = ['Madassar','Yadav'];
 const DW_LIST = [
@@ -3140,12 +3194,18 @@ async function populatePerfDates(){
 // ── PARSE WORKER CONTRIBUTIONS FROM RAW WHATSAPP ──
 function parseWorkerContributions(rawText, totalWorkers){
   if(!rawText) return [];
-  const OH_PER_PERSON = r2(1100 / totalWorkers);
+  const OH_PER_PERSON = r2(1100 / (totalWorkers || 1));
   const workers = {};
 
+  const VARIANTS = {'Billal':'Bilal','Singlish':'Singlesh','Farooq':'Faruk','Gafur':'Gofur',
+    'Dharampaul':'Dharampal','Josam':'Josem','Josim':'Josem','Jousue':'Josue',
+    'Ebod':'Evod','Fleix':'Felix','Israel':'Israil'};
   const getW = (name) => {
-    const n = name.trim();
-    if(!n || n.length < 2) return null;
+    const raw = name.trim();
+    if(!raw || raw.length < 2) return null;
+    // Normalize to Title Case then apply canonical variants
+    const titled = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    const n = VARIANTS[titled] || titled;
     if(!workers[n]) workers[n] = {
       name:n, income:0, otHrs:0,
       dailyCost: SALARIES[n] !== undefined ? SALARIES[n] : 100,
@@ -3277,7 +3337,7 @@ async function loadPerf(){
     const _pc = dateStr >= '2026-01-01' && dateStr <= '2026-03-31';
     const _pm = dateStr >= '2026-03-08' && dateStr <= '2026-04-30';
     const _perfOH = parseFloat((1100 + (_pc ? 169.23 : 0) + (_pm ? -192.31 : 0)).toFixed(2));
-    const oh = r2(_perfOH / d.total_workers);
+    const oh = r2(_perfOH / (d.total_workers || 1));
     const stars = workers.filter(w=>w.contribution>=200).length;
     const good  = workers.filter(w=>w.contribution>=0&&w.contribution<200).length;
     const marg  = workers.filter(w=>w.contribution<0&&w.contribution>=-100).length;
@@ -3527,8 +3587,12 @@ async function loadInvoice(){
   const res = document.getElementById('invResults');
     res.innerHTML = '<div class="loading"><div class="spinner"></div>Loading production data...</div>';
   try {
+    // Get last day of selected month properly
+    const [mYr,mMn] = month.split('-').map(Number);
+    const lastDay = new Date(mYr, mMn, 0).getDate();
+    const lastDate = month + '-' + String(lastDay).padStart(2,'0');
     const rows = await sbGet('daily_pl',
-      `?work_date=gte.${month}-01&work_date=lte.${month}-31&select=work_date,whatsapp_raw,total_workers&order=work_date.asc`);
+      `?work_date=gte.${month}-01&work_date=lte.${lastDate}&select=work_date,whatsapp_raw,total_workers&order=work_date.asc`);
     
     if(!rows.length){
       res.innerHTML='<div class="alert warn"><div>No data found for this month. Make sure days are saved via Daily Input first.</div></div>';
@@ -4321,6 +4385,203 @@ function buildWorkersHTML(raw){
 }
 
 
+
+// ══════════ PROJECT ROI ══════════
+async function loadProjectROI(){
+  try {
+    // Fetch all work_items grouped by site
+    const items = await sbGet('work_items','?select=work_date,site,work_type,quantity,income&order=work_date.asc');
+    // Fetch daily_pl for overhead and worker costs
+    const dailyRows = await sbGet('daily_pl','?select=work_date,total_income,total_cost,net_pl,total_workers,core_present,dw_present&order=work_date.asc');
+
+    const plMap = {};
+    dailyRows.forEach(function(r){ plMap[r.work_date] = r; });
+
+    // Per project aggregation
+    const proj = {
+      '572':    {label:'Hilalco 572',   color:'var(--teal)',  colorHex:'#2a9d8f', income:0, days:new Set(), workerCost:0, ohShare:0, byWt:{}},
+      'innovo': {label:'Innovo',        color:'var(--purple)',colorHex:'#6a4fcf', income:0, days:new Set(), workerCost:0, ohShare:0, byWt:{}},
+      'basatin':{label:'Basatin',       color:'var(--amber)', colorHex:'#e07b00', income:0, days:new Set(), workerCost:0, ohShare:0, byWt:{}}
+    };
+
+    // Per work type aggregation (global across all projects)
+    const wtGlobal = {};
+
+    items.forEach(function(it){
+      const p = proj[it.site];
+      if(!p) return;
+      const inc = parseFloat(it.income||0);
+      p.income = r2(p.income + inc);
+      p.days.add(it.work_date);
+
+      // Work type bucketing
+      let wt = (it.work_type||'Other').trim();
+      if(/grutting/i.test(wt)) wt = 'Grouting';
+      if(!p.byWt[wt]) p.byWt[wt] = {qty:0, income:0};
+      p.byWt[wt].qty  = r2(p.byWt[wt].qty  + parseFloat(it.quantity||0));
+      p.byWt[wt].income = r2(p.byWt[wt].income + inc);
+
+      // Global work type
+      const wtKey = wt.split(' ').slice(0,2).join(' '); // "Kerb Fixing", "Tile Laying" etc
+      if(!wtGlobal[wtKey]) wtGlobal[wtKey] = {income:0, qty:0, sites:new Set()};
+      wtGlobal[wtKey].income = r2(wtGlobal[wtKey].income + inc);
+      wtGlobal[wtKey].qty    = r2(wtGlobal[wtKey].qty + parseFloat(it.quantity||0));
+      wtGlobal[wtKey].sites.add(it.site);
+    });
+
+    // For each day, split costs proportionally by income share per site
+    dailyRows.forEach(function(row){
+      const dt = row.work_date;
+      const totalCost = parseFloat(row.total_cost||0);
+      const totalInc  = parseFloat(row.total_income||1);
+      // Overhead for that day
+      const hasCoaster  = dt >= '2026-01-01' && dt <= '2026-03-31';
+      const madLeave    = dt >= '2026-03-08' && dt <= '2026-04-30';
+      const oh = parseFloat((1100 + (hasCoaster?169.23:0) + (madLeave?-192.31:0)).toFixed(2));
+      const workerCostTotal = r2(totalCost - oh);
+
+      ['572','innovo','basatin'].forEach(function(site){
+        // Income from this site on this day
+        const siteInc = items
+          .filter(function(it){ return it.work_date===dt && it.site===site; })
+          .reduce(function(s,it){ return s+parseFloat(it.income||0); },0);
+        if(siteInc <= 0) return;
+        const share = totalInc > 0 ? siteInc/totalInc : 0;
+        proj[site].workerCost = r2(proj[site].workerCost + workerCostTotal*share);
+        proj[site].ohShare    = r2(proj[site].ohShare    + oh*share);
+      });
+    });
+
+    // ── RENDER PROJECT ROI CARDS ──
+    const totalAllInc  = Object.values(proj).reduce(function(s,p){return s+p.income;},0);
+
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px">';
+    ['572','innovo','basatin'].forEach(function(site){
+      const p = proj[site];
+      const totalCost = r2(p.workerCost + p.ohShare);
+      const net  = r2(p.income - totalCost);
+      const roi  = totalCost > 0 ? parseFloat((p.income/totalCost).toFixed(2)) : 0;
+      const days = p.days.size;
+      const avgDay = days > 0 ? r2(p.income/days) : 0;
+      const incPct = totalAllInc > 0 ? (p.income/totalAllInc*100).toFixed(1) : '0';
+      const roiColor = roi>=3?'#6ecf8a':roi>=2?'#8cd4c8':roi>=1?'#f4a261':'#f08080';
+      const isProfitable = net >= 0;
+
+      html += `<div style="background:var(--bg1);border:.5px solid var(--border2);border-radius:var(--border-radius-lg);overflow:hidden">
+        <div style="background:${p.colorHex};padding:12px 14px;color:#fff">
+          <div style="font-size:11px;opacity:.8;margin-bottom:2px">${days} working days</div>
+          <div style="font-size:18px;font-weight:700">${p.label}</div>
+          <div style="font-size:13px;opacity:.85">${incPct}% of total income</div>
+        </div>
+        <div style="padding:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="background:var(--bg2);border-radius:var(--border-radius-md);padding:8px 10px">
+              <div style="font-size:10px;color:var(--ink3);margin-bottom:2px">TOTAL INCOME</div>
+              <div style="font-size:16px;font-weight:700;color:var(--green)">AED ${f(p.income)}</div>
+              <div style="font-size:10px;color:var(--ink3)">AED ${f(avgDay)}/day avg</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--border-radius-md);padding:8px 10px">
+              <div style="font-size:10px;color:var(--ink3);margin-bottom:2px">TOTAL COST</div>
+              <div style="font-size:16px;font-weight:700;color:var(--red)">AED ${f(totalCost)}</div>
+              <div style="font-size:10px;color:var(--ink3)">Worker + overhead</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--border-radius-md);padding:8px 10px">
+              <div style="font-size:10px;color:var(--ink3);margin-bottom:2px">NET CONTRIBUTION</div>
+              <div style="font-size:16px;font-weight:700;color:${isProfitable?'var(--green)':'var(--red)'}">${isProfitable?'+':''}AED ${f(net)}</div>
+              <div style="font-size:10px;color:var(--ink3)">${isProfitable?'Profitable ✓':'Loss ✗'}</div>
+            </div>
+            <div style="background:${roiColor}20;border:.5px solid ${roiColor}60;border-radius:var(--border-radius-md);padding:8px 10px">
+              <div style="font-size:10px;color:var(--ink3);margin-bottom:2px">ROI</div>
+              <div style="font-size:24px;font-weight:800;color:${roiColor}">${roi.toFixed(2)}×</div>
+              <div style="font-size:10px;color:var(--ink3)">${roi>=3?'Excellent':roi>=2?'Good':roi>=1?'Marginal':'Poor'}</div>
+            </div>
+          </div>
+          <div style="border-top:.5px solid var(--border3);padding-top:10px">
+            <div style="font-size:10px;font-weight:600;color:var(--ink3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Cost breakdown</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+              <span style="color:var(--ink3)">Worker cost</span>
+              <span>AED ${f(p.workerCost)} <span style="color:var(--ink3)">(${totalCost>0?(p.workerCost/totalCost*100).toFixed(0):'0'}%)</span></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px">
+              <span style="color:var(--ink3)">Overhead share</span>
+              <span>AED ${f(p.ohShare)} <span style="color:var(--ink3)">(${totalCost>0?(p.ohShare/totalCost*100).toFixed(0):'0'}%)</span></span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+
+    // ── COMPARISON BAR ──
+    html += '<div style="background:var(--bg2);border-radius:var(--border-radius-md);padding:12px 14px;margin-bottom:4px">';
+    html += '<div style="font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:8px">Income share across projects</div>';
+    html += '<div style="display:flex;height:18px;border-radius:4px;overflow:hidden;gap:2px">';
+    ['572','innovo','basatin'].forEach(function(site){
+      const p = proj[site];
+      const pct = totalAllInc > 0 ? (p.income/totalAllInc*100).toFixed(1) : 0;
+      html += `<div style="width:${pct}%;background:${p.colorHex};display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;min-width:${pct>5?'auto':'0'};overflow:hidden">${pct>8?p.label+' '+pct+'%':''}</div>`;
+    });
+    html += '</div>';
+    html += '<div style="display:flex;gap:14px;margin-top:6px">';
+    ['572','innovo','basatin'].forEach(function(site){
+      const p = proj[site];
+      const pct = totalAllInc > 0 ? (p.income/totalAllInc*100).toFixed(1) : 0;
+      html += `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink3)"><div style="width:8px;height:8px;border-radius:50%;background:${p.colorHex}"></div>${p.label}: ${pct}%</div>`;
+    });
+    html += '</div></div>';
+
+    document.getElementById('projectROI').innerHTML = html;
+
+    // ── RENDER WORK TYPE ROI ──
+    const wtSorted = Object.entries(wtGlobal)
+      .filter(function(e){ return e[1].income > 0; })
+      .sort(function(a,b){ return b[1].income - a[1].income; });
+
+    const totalWtInc = wtSorted.reduce(function(s,e){ return s+e[1].income; },0);
+    const maxWtInc = wtSorted.length > 0 ? wtSorted[0][1].income : 1;
+
+    let wtHtml = '<table style="width:100%;border-collapse:collapse">';
+    wtHtml += '<thead><tr style="border-bottom:.5px solid var(--border2)">';
+    wtHtml += '<th style="text-align:left;padding:6px 8px;font-size:10px;color:var(--ink3)">WORK TYPE</th>';
+    wtHtml += '<th style="text-align:right;padding:6px 8px;font-size:10px;color:var(--ink3)">TOTAL QTY</th>';
+    wtHtml += '<th style="text-align:right;padding:6px 8px;font-size:10px;color:var(--ink3)">TOTAL INCOME</th>';
+    wtHtml += '<th style="text-align:right;padding:6px 8px;font-size:10px;color:var(--ink3)">% OF INCOME</th>';
+    wtHtml += '<th style="padding:6px 8px;font-size:10px;color:var(--ink3)">SITES</th>';
+    wtHtml += '</tr></thead><tbody>';
+
+    wtSorted.forEach(function(entry, idx){
+      const wt = entry[0]; const v = entry[1];
+      const pct = totalWtInc > 0 ? (v.income/totalWtInc*100).toFixed(1) : 0;
+      const barW = maxWtInc > 0 ? Math.round(v.income/maxWtInc*100) : 0;
+      const isTile = wt.toLowerCase().includes('tile');
+      const isKerb = wt.toLowerCase().includes('kerb');
+      const color = isTile?'var(--purple)':isKerb?'var(--teal)':'var(--ink2)';
+      const unit = wt==='Tile Laying'?'m²':'LM';
+      const siteTags = Array.from(v.sites).map(function(s){
+        const colors = {'572':'s572','innovo':'sinn','basatin':'sbas'};
+        return `<span class="site ${colors[s]||''}">${s}</span>`;
+      }).join(' ');
+
+      wtHtml += `<tr style="border-bottom:.5px solid var(--border3)">`;
+      wtHtml += `<td style="padding:7px 8px">`;
+      wtHtml += `<div style="font-size:12px;font-weight:600;color:${color}">${idx===0?'⭐ ':idx===1?'🥈 ':idx===2?'🥉 ':''+(idx+1)+'. '}${wt}</div>`;
+      wtHtml += `<div style="width:${barW}%;height:3px;background:${color};border-radius:2px;margin-top:4px;opacity:.6"></div>`;
+      wtHtml += `</td>`;
+      wtHtml += `<td style="text-align:right;padding:7px 8px;font-size:12px;color:var(--ink2)">${v.qty.toFixed(1)} ${unit}</td>`;
+      wtHtml += `<td style="text-align:right;padding:7px 8px;font-size:13px;font-weight:700;color:var(--green)">AED ${f(v.income)}</td>`;
+      wtHtml += `<td style="text-align:right;padding:7px 8px;font-size:12px;color:var(--ink3)">${pct}%</td>`;
+      wtHtml += `<td style="padding:7px 8px">${siteTags}</td>`;
+      wtHtml += `</tr>`;
+    });
+    wtHtml += '</tbody></table>';
+    document.getElementById('workTypeROI').innerHTML = wtHtml;
+
+  } catch(e){
+    console.error('Project ROI error:', e);
+    document.getElementById('projectROI').innerHTML = `<div class="alert danger"><div>Error: ${e.message}</div></div>`;
+  }
+}
+
 // ══════════ WORKER ROI ══════════
 const CORE_COST = {
   'Billal':r2(1100/26),'Bilal':r2(1100/26),
@@ -4473,6 +4734,7 @@ function renderROITable(workers, type){
 }
 
 async function loadROI(){
+  loadProjectROI();
   // Populate date picker
   try {
     const rows = await sbGet('daily_pl','?select=work_date&order=work_date.desc&limit=200');
@@ -4495,6 +4757,7 @@ async function loadROICumulative(){
       const tileRate = row.work_date < '2026-04-01' ? 15 : 13;
       const workers = parseWorkerIncomes(row.whatsapp_raw, tileRate);
       workers.forEach(function(w){
+        w.name = w.name.charAt(0).toUpperCase()+w.name.slice(1).toLowerCase();
         const bucket = w.type==='core' ? cumCore : cumDW;
         if(!bucket[w.name]) bucket[w.name] = {income:0, cost:0, days:0};
         bucket[w.name].income = r2(bucket[w.name].income + w.income);
@@ -4615,6 +4878,351 @@ async function loadROIDay(){
   } catch(e){
     console.error('ROI day error:', e);
     alert('Error: '+e.message);
+  }
+}
+
+
+// ══════════ PROJECT PAGES ══════════
+const PROJECT_CONFIG = {
+  '572': {
+    label: 'Hilalco AD572', color: 'var(--teal)', colorHex: '#2a9d8f',
+    contentId: 'p572content',
+    contract: 'AD572/0682/2023', client: 'Hilalco / Wade Adams JV',
+    contractValue: 2542146, billedToDate: 2258737, retention: 0.05,
+    scope: null, // no fixed LM scope
+    workTypes: [
+      {key:'Kerb Fixing', rate:5.55, unit:'LM'},
+      {key:'Grouting', rate:1.54, unit:'LM'},
+      {key:'Blinding', rate:3.00, unit:'LM'},
+      {key:'Haunching', rate:3.00, unit:'LM'},
+      {key:'Tile Laying', rate:12.00, unit:'m²'},
+      {key:'Tile Border', rate:12.00, unit:'LM'},
+    ]
+  },
+  'innovo': {
+    label: 'Innovo IIA0101', color: 'var(--purple)', colorHex: '#6a4fcf',
+    contentId: 'pinnContent',
+    contract: 'IIA0101-SCA-00107', client: 'Innovo Roads LLC',
+    contractValue: 135000, billedToDate: 0, retention: 0,
+    scope: 15000, // LM total scope
+    workTypes: [
+      {key:'Kerb Fixing', rate:7.50, unit:'LM'},
+      {key:'Grouting', rate:1.54, unit:'LM'},
+    ]
+  },
+  'basatin': {
+    label: 'Basatin — Saadiyat Lagoons', color: 'var(--amber)', colorHex: '#e07b00',
+    contentId: 'pbasContent',
+    contract: 'LPO Confirmed', client: 'Basatin',
+    contractValue: null, billedToDate: 0, retention: 0,
+    scope: null,
+    workTypes: [
+      {key:'Kerb Fixing', rate:14.50, unit:'LM'},
+      {key:'Grouting', rate:1.54, unit:'LM'},
+      {key:'Tile Laying', rate:13.00, unit:'m²'},
+      {key:'Tile Border', rate:0, unit:'LM'},
+    ]
+  }
+};
+
+const loadedProjects = {};
+
+async function loadProjectPage(site){
+  if(loadedProjects[site]) return; // already loaded
+  const cfg = PROJECT_CONFIG[site];
+  const el = document.getElementById(cfg.contentId);
+  if(!el) return;
+
+  try {
+    // Fetch all work_items for this site
+    const items = await sbGet('work_items',
+      `?site=eq.${site}&select=work_date,work_type,quantity,unit,income,worker_names&order=work_date.asc`);
+
+    // Fetch daily_pl for worker counts
+    const dailyPL = await sbGet('daily_pl',
+      `?select=work_date,total_workers,core_present,dw_present,ot_hours,net_pl,total_income,total_cost&order=work_date.asc`);
+    const plMap = {};
+    dailyPL.forEach(function(r){ plMap[r.work_date] = r; });
+
+    if(!items.length){
+      el.innerHTML = '<div class="alert warn"><div>No work items found for this project yet.</div></div>';
+      return;
+    }
+
+    // ── Aggregate by date ──
+    const byDate = {};
+    items.forEach(function(it){
+      if(!byDate[it.work_date]) byDate[it.work_date] = {income:0, items:[], workers: new Set()};
+      byDate[it.work_date].income = r2(byDate[it.work_date].income + parseFloat(it.income||0));
+      byDate[it.work_date].items.push(it);
+      (it.worker_names||'').split('+').forEach(function(n){ const nm=n.trim(); if(nm&&nm!=='—') byDate[it.work_date].workers.add(nm); });
+    });
+
+    const dates = Object.keys(byDate).sort();
+
+    // ── Aggregate by work type ──
+    const wtTotals = {};
+    cfg.workTypes.forEach(function(wt){ wtTotals[wt.key] = {qty:0, income:0}; });
+    items.forEach(function(it){
+      const wt = cfg.workTypes.find(function(w){ return (it.work_type||'').includes(w.key.split(' ')[0]) && (it.work_type||'').toLowerCase().includes(w.key.toLowerCase().split(' ').slice(-1)[0]); });
+      if(wt){
+        wtTotals[wt.key].qty = r2(wtTotals[wt.key].qty + parseFloat(it.quantity||0));
+        wtTotals[wt.key].income = r2(wtTotals[wt.key].income + parseFloat(it.income||0));
+      } else {
+        // fallback — match first word
+        const first = (it.work_type||'').split(' ')[0].toLowerCase();
+        const fallback = cfg.workTypes.find(function(w){ return w.key.toLowerCase().startsWith(first); });
+        if(fallback){
+          wtTotals[fallback.key].qty = r2(wtTotals[fallback.key].qty + parseFloat(it.quantity||0));
+          wtTotals[fallback.key].income = r2(wtTotals[fallback.key].income + parseFloat(it.income||0));
+        }
+      }
+    });
+
+    const totalIncome = r2(Object.values(wtTotals).reduce(function(s,v){ return s+v.income; },0));
+    const totalDays = dates.length;
+    const avgIncPerDay = totalDays > 0 ? r2(totalIncome/totalDays) : 0;
+
+    // ── Running totals per day ──
+    let running = 0;
+    const runningByDate = {};
+    dates.forEach(function(dt){
+      running = r2(running + byDate[dt].income);
+      runningByDate[dt] = running;
+    });
+
+    // ── 7-day rolling average ──
+    const last7 = dates.slice(-7);
+    const last7Inc = last7.reduce(function(s,dt){ return s + byDate[dt].income; },0);
+    const avg7 = last7.length > 0 ? r2(last7Inc/last7.length) : 0;
+
+    // ── Trend: compare last 14 days vs previous 14 ──
+    const last14 = dates.slice(-14);
+    const prev14 = dates.slice(-28,-14);
+    const avgLast14 = last14.length ? r2(last14.reduce(function(s,dt){return s+byDate[dt].income;},0)/last14.length) : 0;
+    const avgPrev14 = prev14.length ? r2(prev14.reduce(function(s,dt){return s+byDate[dt].income;},0)/prev14.length) : 0;
+    const trend = avgPrev14 > 0 ? r2((avgLast14-avgPrev14)/avgPrev14*100) : 0;
+    const trendUp = trend >= 0;
+
+    // ── Scope progress (Innovo only) ──
+    const kerbDone = wtTotals['Kerb Fixing'] ? wtTotals['Kerb Fixing'].qty : 0;
+    const scopePct = cfg.scope ? Math.min(100,r2(kerbDone/cfg.scope*100)) : null;
+
+    // ══ BUILD HTML ══
+    let html = '';
+
+    // ── KPI STRIP ──
+    html += `<div class="g4" style="margin-bottom:14px">
+      <div class="kpi" style="border-top:3px solid ${cfg.colorHex}">
+        <div class="kl">Total Income To Date</div>
+        <div class="kv" style="color:${cfg.color}">AED ${f(totalIncome)}</div>
+        <div class="ks">${totalDays} working days</div>
+      </div>
+      <div class="kpi">
+        <div class="kl">Daily Average</div>
+        <div class="kv">AED ${f(avgIncPerDay)}</div>
+        <div class="ks">all-time avg/day</div>
+      </div>
+      <div class="kpi">
+        <div class="kl">Last 7 Days Avg</div>
+        <div class="kv">AED ${f(avg7)}</div>
+        <div class="ks">${trendUp?'↑':'↓'} ${Math.abs(trend).toFixed(1)}% vs prev 14d</div>
+      </div>
+      <div class="kpi ${trendUp?'profit':'rd'}">
+        <div class="kl">Trend</div>
+        <div class="kv">${trendUp?'↑ Growing':'↓ Slowing'}</div>
+        <div class="ks">${trendUp?'+':''}${trend.toFixed(1)}% vs previous period</div>
+      </div>
+    </div>`;
+
+    // ── SCOPE BAR (Innovo) ──
+    if(cfg.scope){
+      html += `<div class="card" style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:500">Scope Progress — ${cfg.scope.toLocaleString()} LM total</div>
+          <div style="font-size:13px;font-weight:600;color:${cfg.color}">${kerbDone.toFixed(0)} LM done · ${scopePct}%</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:4px;height:12px;overflow:hidden">
+          <div style="width:${scopePct}%;height:100%;background:${cfg.colorHex};border-radius:4px;transition:width .5s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--ink3)">
+          <span>0 LM</span>
+          <span>${(cfg.scope*0.5).toLocaleString()} LM (50%)</span>
+          <span>${cfg.scope.toLocaleString()} LM</span>
+        </div>
+        ${avgIncPerDay > 0 ? `<div style="margin-top:8px;font-size:11px;color:var(--ink3)">
+          At current pace (${(kerbDone/totalDays).toFixed(1)} LM/day): 
+          <strong>${Math.ceil((cfg.scope-kerbDone)/(kerbDone/totalDays))} more working days</strong> to complete scope
+        </div>` : ''}
+      </div>`;
+    }
+
+    // ── WORK TYPE SUMMARY ──
+    html += `<div class="card" style="margin-bottom:14px">
+      <div class="chd" style="color:${cfg.color}">${cfg.label} — Work Type Summary</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:.5px solid var(--border2)">
+          <th style="text-align:left;padding:7px 8px;font-size:11px">Work Type</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Rate</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Total Qty</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Total Income</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Avg/Day</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">% of Income</th>
+        </tr></thead>
+        <tbody>
+          ${cfg.workTypes.map(function(wt){
+            const d2 = wtTotals[wt.key]||{qty:0,income:0};
+            const pct = totalIncome > 0 ? (d2.income/totalIncome*100).toFixed(1) : '0';
+            const avgDay = totalDays > 0 ? r2(d2.qty/totalDays) : 0;
+            const barW = totalIncome > 0 ? Math.round(d2.income/totalIncome*100) : 0;
+            return `<tr style="border-bottom:.5px solid var(--border3)">
+              <td style="padding:7px 8px;font-size:12px;font-weight:500">${wt.key}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:11px;color:var(--ink3)">${wt.rate>0?'AED '+wt.rate+'/'+wt.unit:'—'}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:12px;font-weight:500">${d2.qty.toFixed(1)} ${wt.unit}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:13px;font-weight:600;color:${d2.income>0?'var(--green)':'var(--ink3)'}">${d2.income>0?'AED '+f(d2.income):'—'}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:11px;color:var(--ink3)">${avgDay.toFixed(1)} ${wt.unit}</td>
+              <td style="padding:7px 8px">
+                <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+                  <div style="width:60px;height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
+                    <div style="width:${barW}%;height:100%;background:${cfg.colorHex};border-radius:2px"></div>
+                  </div>
+                  <span style="font-size:11px;color:var(--ink3);min-width:32px;text-align:right">${pct}%</span>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="border-top:.5px solid var(--border2);background:var(--bg2)">
+            <td colspan="3" style="padding:7px 8px;font-size:12px;font-weight:700">TOTAL</td>
+            <td style="text-align:right;padding:7px 8px;font-size:14px;font-weight:700;color:var(--green)">AED ${f(totalIncome)}</td>
+            <td colspan="2" style="text-align:right;padding:7px 8px;font-size:11px;color:var(--ink3)">AED ${f(avgIncPerDay)}/day avg</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+
+    // ── MONTHLY SUMMARY ──
+    const byMonth = {};
+    dates.forEach(function(dt){
+      const mk = dt.substring(0,7);
+      if(!byMonth[mk]) byMonth[mk] = {income:0,days:0,qty:{}};
+      byMonth[mk].income = r2(byMonth[mk].income + byDate[dt].income);
+      byMonth[mk].days++;
+      byDate[dt].items.forEach(function(it){
+        // Normalize work type key for monthly summary
+        let wtRaw = (it.work_type||'').trim();
+        let wt = wtRaw.split(' ')[0];
+        if(/grutting/i.test(wtRaw)) wt = 'Grouting';
+        else if(/tile/i.test(wtRaw) && !/border|cutpiece|cut piece/i.test(wtRaw)) wt = 'Tile';
+        else if(/kerb/i.test(wtRaw)) wt = 'Kerb';
+        byMonth[mk].qty[wt] = r2((byMonth[mk].qty[wt]||0) + parseFloat(it.quantity||0));
+      });
+    });
+    const monthNames = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+
+    html += `<div class="card" style="margin-bottom:14px">
+      <div class="chd" style="color:${cfg.color}">Monthly Performance</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:.5px solid var(--border2)">
+          <th style="text-align:left;padding:7px 8px;font-size:11px">Month</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Days</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Income</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Avg/Day</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Kerb LM</th>
+          <th style="text-align:right;padding:7px 8px;font-size:11px">Tile m²</th>
+          <th style="padding:7px 8px;font-size:11px">Trend</th>
+        </tr></thead>
+        <tbody>
+          ${Object.entries(byMonth).map(function(entry, idx, arr){
+            const mk = entry[0]; const mv = entry[1];
+            const avg = mv.days > 0 ? r2(mv.income/mv.days) : 0;
+            const prevAvg = idx > 0 ? r2(arr[idx-1][1].income/arr[idx-1][1].days) : avg;
+            const mTrend = prevAvg > 0 ? r2((avg-prevAvg)/prevAvg*100) : 0;
+            const [myr,mmn] = mk.split('-');
+            return `<tr style="border-bottom:.5px solid var(--border3)">
+              <td style="padding:7px 8px;font-size:12px;font-weight:500">${monthNames[mmn]||mmn} ${myr}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:11px;color:var(--ink3)">${mv.days}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:13px;font-weight:600;color:var(--green)">AED ${f(mv.income)}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:12px">AED ${f(avg)}</td>
+              <td style="text-align:right;padding:7px 8px;font-size:11px;color:var(--ink3)">${(mv.qty['Kerb']||0).toFixed(0)} LM</td>
+              <td style="text-align:right;padding:7px 8px;font-size:11px;color:var(--ink3)">${(mv.qty['Tile']||0).toFixed(0)}</td>
+              <td style="padding:7px 8px">
+                <span style="font-size:11px;color:${mTrend>=0?'var(--green)':'var(--red)'}">${idx===0?'—':(mTrend>=0?'↑ +':'↓ ')+Math.abs(mTrend).toFixed(1)+'%'}</span>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+    // ── DAY BY DAY TABLE ──
+    html += `<div class="card" style="margin-bottom:14px;overflow-x:auto">
+      <div class="chd" style="color:${cfg.color}">Day-by-Day Detail — All ${totalDays} Days</div>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">Every working day · quantities · income · running total · workers on site for this project</div>
+      <table style="width:100%;border-collapse:collapse;min-width:700px">
+        <thead>
+          <tr style="border-bottom:.5px solid var(--border2)">
+            <th style="text-align:left;padding:6px 8px;font-size:10px;color:var(--ink3)">#</th>
+            <th style="text-align:left;padding:6px 8px;font-size:10px;color:var(--ink3)">DATE</th>
+            <th style="text-align:right;padding:6px 8px;font-size:10px;color:var(--ink3)">WORKERS</th>
+            ${cfg.workTypes.filter(function(w){return w.rate>0;}).map(function(wt){
+              return `<th style="text-align:right;padding:6px 8px;font-size:10px;color:var(--ink3)">${wt.key.toUpperCase().substring(0,10)}</th>`;
+            }).join('')}
+            <th style="text-align:right;padding:6px 8px;font-size:10px;color:var(--ink3)">INCOME</th>
+            <th style="text-align:right;padding:6px 8px;font-size:10px;color:var(--ink3)">RUNNING TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${dates.map(function(dt, idx){
+            const dd2 = byDate[dt];
+            const pl = plMap[dt]||{};
+            const dayInc = dd2.income;
+            const runTotal = runningByDate[dt];
+            const wCount = dd2.workers.size || '—';
+            // Get qty per work type for this day
+            const dayQty = {};
+            dd2.items.forEach(function(it){
+              const wt = cfg.workTypes.find(function(w){ return (it.work_type||'').toLowerCase().includes(w.key.toLowerCase().split(' ')[0]); });
+              if(wt) dayQty[wt.key] = r2((dayQty[wt.key]||0) + parseFloat(it.quantity||0));
+            });
+            const isGood = dayInc > avgIncPerDay;
+            return `<tr style="border-bottom:.5px solid var(--border3);background:${isGood?'rgba(106,200,141,.04)':''}">
+              <td style="padding:5px 8px;font-size:10px;color:var(--ink4)">${idx+1}</td>
+              <td style="padding:5px 8px;font-size:12px;font-weight:500">${fmt_date(dt)}</td>
+              <td style="text-align:right;padding:5px 8px;font-size:11px;color:var(--ink3)">${wCount}P</td>
+              ${cfg.workTypes.filter(function(w){return w.rate>0;}).map(function(wt){
+                const qty = dayQty[wt.key]||0;
+                return `<td style="text-align:right;padding:5px 8px;font-size:11px;${qty>0?'color:var(--ink1);font-weight:500':'color:var(--ink4)'}">${qty>0?qty.toFixed(1)+' '+wt.unit:'—'}</td>`;
+              }).join('')}
+              <td style="text-align:right;padding:5px 8px;font-size:12px;font-weight:600;color:${dayInc>0?'var(--green)':'var(--ink4)'}">${dayInc>0?'AED '+dayInc.toFixed(0):'—'}</td>
+              <td style="text-align:right;padding:5px 8px;font-size:11px;color:var(--ink3)">AED ${f(runTotal)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:22px;font-weight:300;color:${cfg.color}">${cfg.label}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px">${cfg.client} · ${cfg.contract}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--ink3)">Data from ${dates[0]||'—'} to ${dates[dates.length-1]||'—'}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px">${totalDays} working days recorded</div>
+      <button class="btn" onclick="delete loadedProjects['${site}'];loadProjectPage('${site}')" style="font-size:10px;padding:3px 10px;margin-top:4px">↺ Refresh</button>
+        </div>
+      </div>
+      ${html}`;
+
+    loadedProjects[site] = true;
+
+  } catch(e){
+    const el2 = document.getElementById(PROJECT_CONFIG[site].contentId);
+    if(el2) el2.innerHTML = `<div class="alert danger"><div>Error loading ${site} data: ${e.message}</div></div>`;
+    console.error('Project page error:', e);
   }
 }
 
