@@ -2873,10 +2873,11 @@ async function parseAndSave(){
   }
   // Also check core count
   // Handle both "AL Fakhira+7P" and "AL Fakhira: 6P + 2 Foreman"
-  const corem = txt.match(/AL\s*Fakhira\s*[:\s]*([\d]+)\s*P/i);
-  // On holidays: no AL Fakhira line — use actual core headcount (11 staff on monthly salary)
+  // Detect holiday EARLY — needed before coreN calculation
+  const isHolidayEarly = /eid|no work today|holiday|compo.?cter? brush/i.test(txt);
   const ACTUAL_CORE_COUNT = 11; // Bilal,Singlesh,Faruk,Gofur,Kulwant,Dharampal,Sujon,Titu,Siraj,Jashem,Josem
-  const coreN = corem ? parseInt(corem[1]) : (isHoliday ? ACTUAL_CORE_COUNT : (total - dwn));
+  const corem = txt.match(/AL\s*Fakhira\s*[:\s]*([\d]+)\s*P/i);
+  const coreN = corem ? parseInt(corem[1]) : (isHolidayEarly ? ACTUAL_CORE_COUNT : (total - dwn));
   const afm = txt.match(/AL\s*Fakhira[^+\n]*\+?\s*(\d+)/i);
   const coreNAct = afm ? parseInt(afm[1]) : coreN;
 
@@ -3071,7 +3072,7 @@ async function parseAndSave(){
 
   // OVERHEAD RULE 2: Half salary on holidays / no-work days
   // Core workers paid half, no daily wage workers, fixed overhead unchanged
-  const isHoliday = /eid|no work today|holiday|compo.?cter? brush/i.test(txt);
+  const isHoliday = isHolidayEarly; // already detected above
   const adjCoreSal = isHoliday ? r2(coreSalTotal * 0.5) : coreSalTotal;
   const adjDwCost  = isHoliday ? 0 : dwCost;
 
