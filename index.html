@@ -2327,15 +2327,15 @@ function show(id,btn){
 // ── LOAD OVERVIEW ──
 async function loadOverview(){
   try {
-    const rows = await sbGet('daily_pl','?select=*&order=work_date.asc');
+    const rows = await sbGet('daily_pl','?select=work_date,net_pl,total_income,total_cost,income_572,income_innovo,income_basatin,core_present,dw_present,ot_hours,total_workers&order=work_date.asc');
     if(!rows.length){ document.getElementById('ovSummary').innerHTML='<div style="padding:16px;color:var(--ink3)">No data yet. Paste a WhatsApp report in Daily Input to get started.</div>'; return; }
 
-    const totalNet = rows.reduce((s,r)=>s+parseFloat(r.net_pl),0);
-    const totalInc = rows.reduce((s,r)=>s+parseFloat(r.total_income),0);
-    const totalCost = rows.reduce((s,r)=>s+parseFloat(r.total_cost),0);
+    const totalNet = rows.reduce((s,r)=>s+parseFloat(r.net_pl||0),0);
+    const totalInc = rows.reduce((s,r)=>s+parseFloat(r.total_income||0),0);
+    const totalCost = rows.reduce((s,r)=>s+parseFloat(r.total_cost||0),0);
     const avgNet = totalNet/rows.length;
     const profitable = rows.filter(r=>parseFloat(r.net_pl)>=0).length;
-    const best = rows.reduce((a,b)=>parseFloat(a.net_pl)>parseFloat(b.net_pl)?a:b);
+    const best = rows.reduce((a,b)=>parseFloat(a.net_pl||0)>parseFloat(b.net_pl||0)?a:b);
     const ip = totalNet >= 0;
 
     // Summary box
@@ -2363,9 +2363,9 @@ async function loadOverview(){
     // Charts
     const labels = rows.map(r=>fmt_date(r.work_date));
     const vals = rows.map(r=>parseFloat(r.net_pl));
-    const tot572 = rows.reduce((s,r)=>s+parseFloat(r.income_572),0);
-    const totInn = rows.reduce((s,r)=>s+parseFloat(r.income_innovo),0);
-    const totBas = rows.reduce((s,r)=>s+parseFloat(r.income_basatin),0);
+    const tot572 = rows.reduce((s,r)=>s+parseFloat(r.income_572||0),0);
+    const totInn = rows.reduce((s,r)=>s+parseFloat(r.income_innovo||0),0);
+    const totBas = rows.reduce((s,r)=>s+parseFloat(r.income_basatin||0),0);
 
     if(typeof Chart === 'undefined'){ 
       document.getElementById('dbStatus').textContent = '⬤ Chart.js not loaded'; 
@@ -2389,14 +2389,26 @@ async function loadOverview(){
     document.getElementById('dbStatus').textContent = '⬤ Database connected';
 
   } catch(e){
-    console.error(e);
+    console.error('loadOverview error:', e);
+    // Try a simpler query to diagnose
+    let diagMsg = e.message;
+    try {
+      const testRow = await sbGet('daily_pl','?select=work_date,net_pl,total_income,total_cost&limit=1');
+      if(testRow.length > 0){
+        // Basic columns work — issue is with extended columns
+        const hasInc572 = 'income_572' in testRow[0];
+        diagMsg = hasInc572
+          ? 'Overview calc error: ' + e.message
+          : 'Column income_572 missing from DB — run Daily Input to save new data which will create it';
+      }
+    } catch(e2){ diagMsg = 'DB connection failed: ' + e2.message; }
+
     document.getElementById('ovSummary').innerHTML = `
       <div style="padding:16px;color:#f08080;line-height:1.8">
-        <strong>Database error:</strong> ${e.message}<br>
-        <span style="font-size:11px;color:var(--ink3)">Open browser console (F12) for full details. Try clicking "Test DB Connection" in Daily Input tab.</span>
+        <strong>Error:</strong> ${diagMsg}<br>
+        <span style="font-size:11px;color:var(--ink3)">If this says "Column missing", re-save any day from Daily Input to fix it.</span>
       </div>`;
     document.getElementById('dbStatus').textContent = '⬤ DB Error';
-    console.error('loadOverview error:', e);
   }
 }
 
@@ -2411,7 +2423,7 @@ async function loadDailyList(){
       const ip = parseFloat(r.net_pl)>=0;
       return `<tr style="cursor:pointer" onclick="loadDayDetail('${r.work_date}')">
         <td style="font-weight:500">${fmt_date(r.work_date)}</td>
-        <td>${r.total_workers}P · ${r.core_present}+${r.dw_present}</td>
+        <td>${parseFloat(r.total_income||0)===0?'<span style="color:var(--amber);font-size:10px">🏖 Holiday</span> '+r.core_present+'P core':r.total_workers+'P · '+r.core_present+'+'+r.dw_present}</td>
         <td class="tr">AED ${f(r.total_income)}</td>
         <td class="tr">AED ${f(r.total_cost)}</td>
         <td class="tr" style="font-weight:600;color:var(--${ip?'green':'red'})">${ip?'+':''}AED ${f(r.net_pl)}</td>
@@ -2501,7 +2513,10 @@ async function loadDayDetail(dateStr){
           let curNames = ''; let curSite = '572';
           rawLines.forEach(function(rl){
             const rlt = rl.trim(); if(!rlt) return;
-            if(/site=572/i.test(rlt)) curSite='572';
+            // NEW FORMAT: "Project: Site 572"
+            const psM = rlt.match(/Project\s*:?\s*[Ss]ite\s*(572|innovo|basatin)/i);
+            if(psM){ const ps=psM[1].toLowerCase(); curSite=ps==='572'?'572':ps==='innovo'?'innovo':'basatin'; }
+            else if(/site=572/i.test(rlt)) curSite='572';
             else if(/\(basatin\s*\+\s*572\)/i.test(rlt)||/\(572\s*\+\s*basatin\)/i.test(rlt)) curSite='both';
             else if(/\(basatin[^)]*\)/i.test(rlt)) curSite='basatin';
             else if(/\(innovo[^)]*\)/i.test(rlt)) curSite='innovo';
@@ -2750,8 +2765,12 @@ async function loadDayDetail(dateStr){
           </div>
           <div style="text-align:right">
             <div class="sl">On Site</div>
-            <div style="font-family:'Fraunces',serif;font-size:22px;color:#f5f3ee">${d.total_workers}P</div>
-            <div class="ss">${d.core_present} core + ${d.dw_present} daily wage · OT ${d.ot_hours}h</div>
+            <div style="font-family:'Fraunces',serif;font-size:22px;color:#f5f3ee">${(()=>{ const isH=parseFloat(d.total_income||0)===0; return isH?d.core_present+'P':d.total_workers+'P'; })()}</div>
+            <div class="ss">${(()=>{
+            const isHol = /eid|holiday|no work/i.test(d.notes||'') || parseFloat(d.total_income||0)===0;
+            if(isHol) return '🏖 Holiday/No work · ' + d.core_present + ' core (half salary) · 0 DW';
+            return d.core_present + ' core + ' + d.dw_present + ' daily wage · OT ' + (d.ot_hours||0) + 'h';
+          })()}</div>
           </div>
         </div>
       </div>
@@ -2805,10 +2824,14 @@ async function parseAndSave(){
   res.style.display='none';
   status.textContent = '⏳ Calculating...';
 
-  // Extract date — handle: 13-05-2026, 13-5-2026, 13/05/2026
+  // Extract date — handle: "Date: 23-5-2026", "23-5-2026", "23/05/2026", "Date:23-5-2026 — saved from WhatsApp"
   // Always expect DD-MM-YYYY format from Billal
   let workDate = null;
-  const dm = txt.match(/(\d{1,2})[-\/\.](\d{1,2})[-\/\.](\d{4})/);
+  // Strip "Date:" prefix if present, then extract date
+  // Strip day-of-week suffix like "=Sunday", "= Monday" from date string
+  const dateLineM = txt.match(/Date\s*:\s*([\d\-\/\.=A-Za-z\s]+)/i);
+  const dateSearchText = dateLineM ? dateLineM[1].replace(/=.*$/,'').trim() : txt;
+  const dm = dateSearchText.match(/(\d{1,2})[-\/\.](\d{1,2})[-\/\.](\d{4})/);
   if(dm){
     const day = dm[1].padStart(2,'0');
     const mon = dm[2].padStart(2,'0');
@@ -2834,21 +2857,27 @@ async function parseAndSave(){
   status.textContent = `⏳ Date: ${workDate} — calculating...`;
 
   // Extract workforce
-  const ab = txt.match(/Absent[-:.]\s*([^\n]+)/i);
-  const absent = ab ? ab[1].replace(/\./g,', ').trim() : 'None';
-  const tm = txt.match(/Total Workforce\s*=\s*(\d+)/i);
+  const ab = txt.match(/Absent\s*[-:.]?\s*([^\n]*)/i);
+  const absentRaw = ab ? ab[1].replace(/\./g,', ').trim() : '';
+  // Filter out noise — if absent line grabbed next line content, detect by keywords
+  const absent = (!absentRaw || /total|daily|foreman|fakhira|project|workforce/i.test(absentRaw))
+    ? 'None' : absentRaw;
+  const tm = txt.match(/Total Workforce\s*[=:]\s*(\d+)/i);
   const total = tm ? parseInt(tm[1]) : 20;
   // Daily wage count — handle xxx (zero), empty, and numeric values
-  const dwm = txt.match(/Daily wage\s*[-=:]\s*([x×\d]+)/i);
+  const dwm = txt.match(/Daily\s*[Ww]age\s*[-=:\s]*([x×\d]+)/i);
   let dwn = 0;
   if(dwm){
     const val = dwm[1].toLowerCase();
     dwn = (val.includes('x') || val.includes('×')) ? 0 : parseInt(val)||0;
   }
   // Also check core count
-  const corem = txt.match(/AL\s*Fakhira[^=\n]*[+=]\s*(\d+)\s*P/i);
-  const coreN = corem ? parseInt(corem[1]) : (parseInt(txt.match(/Total Workforce=(\d+)/i)?.[1]||'20') - dwn);
-  const afm = txt.match(/AL Fakhira[^+]*\+\s*(\d+)/i);
+  // Handle both "AL Fakhira+7P" and "AL Fakhira: 6P + 2 Foreman"
+  const corem = txt.match(/AL\s*Fakhira\s*[:\s]*([\d]+)\s*P/i);
+  // On holidays: no AL Fakhira line — use actual core headcount (11 staff on monthly salary)
+  const ACTUAL_CORE_COUNT = 11; // Bilal,Singlesh,Faruk,Gofur,Kulwant,Dharampal,Sujon,Titu,Siraj,Jashem,Josem
+  const coreN = corem ? parseInt(corem[1]) : (isHoliday ? ACTUAL_CORE_COUNT : (total - dwn));
+  const afm = txt.match(/AL\s*Fakhira[^+\n]*\+?\s*(\d+)/i);
   const coreNAct = afm ? parseInt(afm[1]) : coreN;
 
   // Parse quantities
@@ -2863,10 +2892,21 @@ async function parseAndSave(){
     const sl = line.toLowerCase();
 
     // ── SITE DETECTION ──
-    // Section-level headers (Site=572, Site=Basatin etc) set the section site
-    if(sl.includes('site=572')){ site='572'; sectionSite='572'; }
+    // OLD FORMAT: "Site=572" heading
+    // NEW FORMAT: "Project: Site 572, 3P" or "Project :site innovo, 1P"
+    // Both formats set sectionSite
+    const projSiteM = line.match(/Project\s*:?\s*[Ss]ite\s*(572|innovo|basatin)/i);
+    if(projSiteM){
+      const ps = projSiteM[1].toLowerCase();
+      site = ps==='572'?'572':ps==='innovo'?'innovo':'basatin';
+      sectionSite = site;
+      currentWorkerNames = ''; // reset worker names on new project section
+    }
+    else if(sl.includes('site=572')){ site='572'; sectionSite='572'; }
     else if(/^site=innovo/i.test(line.trim())){ site='innovo'; sectionSite='innovo'; }
     else if(/^site=basatin/i.test(line.trim())){ site='basatin'; sectionSite='basatin'; }
+    // "Daily wage" standalone line — keep current sectionSite, just marks transition
+    else if(/^daily\s*wage\s*$/i.test(line.trim())){ /* keep site, just section marker */ }
     // Worker group lines: inline tag overrides ONLY if different from section site
     // BUT: if sectionSite=572 and group says (Basatin), trust the section header
     // because Bilal sometimes writes wrong site on group lines
@@ -2967,7 +3007,8 @@ async function parseAndSave(){
     if(/total\s*combined/i.test(otSL)) return;
     if(/[×x]{2,}/.test(otLine)) return;
     // OT line — multiply by group size if "per person"
-    const otM = otLine.match(/over\s*time\s*=\s*([\d.]+)\s*H/i);
+    // Handle "Per person over time", "One person over time", "over time"
+    const otM = otLine.match(/over\s*[Tt]ime\s*[=:\-]\s*([\d.]+)\s*H/i);
     if(otM){
       const hrs = parseFloat(otM[1]);
       const isPerPerson = /per\s*person/i.test(otSL);
@@ -3077,7 +3118,7 @@ async function parseAndSave(){
       work_date: workDate,
       total_workers: parseInt(total)||20,
       core_present: parseInt(coreN)||7,
-      dw_present: parseInt(dwn)||0,
+      dw_present: isHoliday ? 0 : (parseInt(dwn)||0),  // holidays: no DW cost
       ot_hours: parseFloat(totalOT)||0,
       absent_names: (absent||'None').substring(0,200),
       income_572: parseFloat(i572)||0,
@@ -3220,8 +3261,14 @@ function parseWorkerContributions(rawText, totalWorkers){
 
   for(const line of lines){
     const sl = line.toLowerCase();
-    // Site detection — heading level
-    if(sl.includes('site=572')) currentSite='572';
+    // Site detection — NEW FORMAT: "Project: Site 572, 3P"
+    const ps2 = line.match(/Project\s*:?\s*[Ss]ite\s*(572|innovo|basatin)/i);
+    if(ps2){
+      const ps = ps2[1].toLowerCase();
+      currentSite = ps==='572'?'572':ps==='innovo'?'innovo':'basatin';
+    }
+    // OLD FORMAT: "Site=572"
+    else if(sl.includes('site=572')) currentSite='572';
     else if(/\(572\)/.test(sl)||/\b572\b/.test(sl)) currentSite='572';
     else if(sl.includes('innovo')) currentSite='innovo';
     else if(sl.includes('basatin')) currentSite='basatin';
