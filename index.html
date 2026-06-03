@@ -3253,7 +3253,16 @@ async function parseAndSave(){
           rate:parseFloat(it.rate)||0,
           income:parseFloat(it.income)||0
         }));
-        await sbUpsert('work_items',cleanItems);
+        try {
+          await sbUpsert('work_items',cleanItems);
+        } catch(e){
+          // work_area column may not exist yet — retry without it
+          if(e.message && e.message.includes('work_area')){
+            const cleanItemsNoArea = cleanItems.map(it=>{ const {work_area,...rest}=it; return rest; });
+            await sbUpsert('work_items',cleanItemsNoArea);
+            console.warn('Saved without work_area — add column: ALTER TABLE work_items ADD COLUMN IF NOT EXISTS work_area TEXT DEFAULT \'Unknown\';');
+          } else { throw e; }
+        }
       } catch(wi){ console.warn('Work items save failed (non-critical):',wi.message); }
     }
 
@@ -5934,16 +5943,52 @@ async function loadSiteRegister(){
       html += '</tr>';
     });
 
-    // Grand total row
+    // Grand total row (cumulative all time up to last day)
     const lastDt = allDates[allDates.length-1];
     const grandTotal = cumulative[lastDt]||{};
     html += `<tr style="background:var(--ink);color:#f5f3ee">`;
-    html += `<td style="position:sticky;left:0;z-index:5;background:var(--ink);color:#f5f3ee;padding:8px 10px;border:.5px solid var(--border2);font-weight:700">Grand Total</td>`;
+    html += `<td style="position:sticky;left:0;z-index:5;background:var(--ink);color:#f5f3ee;padding:8px 10px;border:.5px solid var(--border2);font-weight:700;white-space:nowrap">Grand Total<br><span style="font-size:9px;opacity:.6">All time cumulative</span></td>`;
     html += `<td style="position:sticky;left:100px;z-index:5;background:var(--ink);padding:8px 6px;border:.5px solid var(--border2)"></td>`;
     REG_SITES.forEach(function(site){
       site.items.forEach(function(item){
         const val = (grandTotal[site.key]||{})[item]||0;
         html += `<td style="text-align:right;padding:8px 6px;border:.5px solid var(--border2);font-weight:700;color:${val>0?'#6ecf8a':'rgba(255,255,255,.3)'}">${val>0?val.toFixed(1):'—'}</td>`;
+      });
+    });
+    html += '</tr>';
+
+    // Monthly cumulative row (this month only = grand total - opening balance)
+    html += `<tr style="background:#1a3a2a;color:#f5f3ee">`;
+    html += `<td style="position:sticky;left:0;z-index:5;background:#1a3a2a;color:#f5f3ee;padding:8px 10px;border:.5px solid var(--border2);font-weight:700;white-space:nowrap">Monthly Total<br><span style="font-size:9px;opacity:.6">${month} work only</span></td>`;
+    html += `<td style="position:sticky;left:100px;z-index:5;background:#1a3a2a;padding:8px 6px;border:.5px solid var(--border2)"></td>`;
+    REG_SITES.forEach(function(site){
+      site.items.forEach(function(item){
+        const total = (grandTotal[site.key]||{})[item]||0;
+        const opening = (openingBal[site.key]||{})[item]||0;
+        const monthly = parseFloat((total - opening).toFixed(2));
+        html += `<td style="text-align:right;padding:8px 6px;border:.5px solid var(--border2);font-weight:700;color:${monthly>0?'#6ecf8a':'rgba(255,255,255,.3)'}">${monthly>0?monthly.toFixed(1):'—'}</td>`;
+      });
+    });
+    html += '</tr>';
+
+    // Payment certificate row (monthly total = what can be invoiced this month)
+    html += `<tr style="background:#0d2b1a;color:#f5f3ee">`;
+    html += `<td style="position:sticky;left:0;z-index:5;background:#0d2b1a;color:#f5f3ee;padding:8px 10px;border:.5px solid var(--border2);font-weight:700;white-space:nowrap">📋 Payment Cert.<br><span style="font-size:9px;opacity:.6">Invoice this month</span></td>`;
+    html += `<td style="position:sticky;left:100px;z-index:5;background:#0d2b1a;padding:8px 6px;border:.5px solid var(--border2)"></td>`;
+    REG_SITES.forEach(function(site){
+      site.items.forEach(function(item){
+        const total = (grandTotal[site.key]||{})[item]||0;
+        const opening = (openingBal[site.key]||{})[item]||0;
+        const monthly = parseFloat((total - opening).toFixed(2));
+        // Rate lookup for income calculation
+        const rateMap = {
+          '572': {'Kerb Fixing':5.55,'Grouting':1.54,'Blinding':3.00,'Haunching':3.00,'Tile Fixing':12.00,'Cutpiece':0,'Maintenance':0,'Rework':0},
+          'basatin': {'Kerb Fixing':14.50,'Grouting':1.54,'Tile Fixing':13.00,'Cutpiece':0,'Border':0,'Maintenance':0,'Rework':0},
+          'innovo': {'Kerb Fixing':7.50,'Grouting':1.54,'Tile Fixing':0,'Cutpiece':0,'Maintenance':0,'Rework':0}
+        };
+        const rate = (rateMap[site.key]||{})[item]||0;
+        const income = monthly > 0 && rate > 0 ? 'AED '+(monthly*rate*(site.key==='572'?0.95:1)).toFixed(0) : (monthly>0?monthly.toFixed(1)+' LM':'—');
+        html += `<td style="text-align:right;padding:8px 6px;border:.5px solid var(--border2);font-weight:600;font-size:10px;color:${rate>0&&monthly>0?'#6ecf8a':'rgba(255,255,255,.4)'}">${income}</td>`;
       });
     });
     html += '</tr>';
