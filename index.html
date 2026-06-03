@@ -151,6 +151,7 @@ tr:hover td{background:var(--surface2)}
   <button class="nb" onclick="show('pinn',this);loadProjectPage('innovo')">Innovo</button>
   <button class="nb" onclick="show('pbas',this);loadProjectPage('basatin')">Basatin</button>
   <button class="nb" onclick="show(&#39;inv&#39;,this)">Invoice Tracker</button>
+  <button class="nb" onclick="show('area',this);loadAreaTracker()">Area Tracker</button>
   <button class="nb" onclick="show(&#39;inp&#39;,this)">Daily Input</button>
 </nav>
 
@@ -2120,6 +2121,58 @@ tr:hover td{background:var(--surface2)}
   <div id="invResults"></div>
 </div>
 
+
+<!-- ══════════ AREA TRACKER ══════════ -->
+<div id="area" class="sec">
+  <!-- FILTERS -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+    <div>
+      <div style="font-size:10px;color:var(--ink3);margin-bottom:3px">SITE</div>
+      <select id="atSite" style="font-size:12px;padding:5px 10px;border-radius:var(--border-radius-md);border:.5px solid var(--border2);background:var(--bg1);color:var(--ink1)">
+        <option value="all">All Sites</option>
+        <option value="572">Hilalco 572</option>
+        <option value="innovo">Innovo</option>
+        <option value="basatin">Basatin</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--ink3);margin-bottom:3px">MONTH</div>
+      <select id="atMonth" style="font-size:12px;padding:5px 10px;border-radius:var(--border-radius-md);border:.5px solid var(--border2);background:var(--bg1);color:var(--ink1)">
+        <option value="all">All Months</option>
+        <option value="2026-01">Jan 2026</option>
+        <option value="2026-02">Feb 2026</option>
+        <option value="2026-03">Mar 2026</option>
+        <option value="2026-04">Apr 2026</option>
+        <option value="2026-05">May 2026</option>
+        <option value="2026-06">Jun 2026</option>
+      </select>
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn gld" onclick="loadAreaTracker()">Load</button>
+    </div>
+    <div style="align-self:flex-end;margin-left:auto">
+      <button class="btn" onclick="generateWAReport()" style="border-color:var(--green);color:var(--green)">📋 Copy WhatsApp Report</button>
+    </div>
+  </div>
+
+  <!-- FLAGS -->
+  <div id="atFlags" style="margin-bottom:12px"></div>
+
+  <!-- AREA TABLE -->
+  <div id="atContent"><div class="loading"><div class="spinner"></div>Loading area data...</div></div>
+
+  <!-- WA REPORT PREVIEW -->
+  <div id="atWAReport" style="display:none;margin-top:14px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="chd">WhatsApp Report</div>
+        <button class="btn" onclick="copyWAReport()" style="font-size:11px">📋 Copy</button>
+      </div>
+      <pre id="atWAText" style="font-size:11px;font-family:'DM Mono',monospace;white-space:pre-wrap;color:var(--ink2);background:var(--bg2);padding:12px;border-radius:var(--border-radius-md);max-height:500px;overflow-y:auto"></pre>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════ DAILY INPUT ══════════ -->
 <div id="inp" class="sec">
   <div class="card" style="margin-bottom:14px">
@@ -2888,7 +2941,7 @@ async function parseAndSave(){
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
 
-  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='';
+  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown';
   txt.split('\n').forEach(line=>{
     const sl = line.toLowerCase();
 
@@ -2896,18 +2949,47 @@ async function parseAndSave(){
     // OLD FORMAT: "Site=572" heading
     // NEW FORMAT: "Project: Site 572, 3P" or "Project :site innovo, 1P"
     // Both formats set sectionSite
-    const projSiteM = line.match(/Project\s*:?\s*[Ss]ite\s*(572|innovo|basatin)/i);
-    if(projSiteM){
-      const ps = projSiteM[1].toLowerCase();
+    // NEW FORMAT: "📍 Site 572" or "📍 Site Basatin"
+    const emojiSiteM = line.match(/📍\s*Site\s*(572|innovo|basatin)/i);
+    if(emojiSiteM){
+      const ps = emojiSiteM[1].toLowerCase();
       site = ps==='572'?'572':ps==='innovo'?'innovo':'basatin';
       sectionSite = site;
-      currentWorkerNames = ''; // reset worker names on new project section
+      currentWorkerNames = '';
+      currentWorkArea = 'Unknown';
     }
-    else if(sl.includes('site=572')){ site='572'; sectionSite='572'; }
-    else if(/^site=innovo/i.test(line.trim())){ site='innovo'; sectionSite='innovo'; }
-    else if(/^site=basatin/i.test(line.trim())){ site='basatin'; sectionSite='basatin'; }
-    // "Daily wage" standalone line — keep current sectionSite, just marks transition
-    else if(/^daily\s*wage\s*$/i.test(line.trim())){ /* keep site, just section marker */ }
+    // NEW FORMAT: "Work Area: cluster 03#Rod=7" or "Work area: museum parking"
+    else if(/^Work\s*Area\s*[:=]/i.test(line.trim())){
+      const waM = line.match(/Work\s*Area\s*[:=]\s*(.+)/i);
+      if(waM){
+        const waRaw = waM[1].trim();
+        // Flag placeholder names
+        currentWorkArea = /^area\s*name$/i.test(waRaw) ? '⚠ Area Name' : waRaw;
+      }
+    }
+    // NEW FORMAT: "Group: Bilal, Singlesh (2P)" or "Workers: Sojol, Don Deu (2P)" or "Worker: Etienne (1P)"
+    else if(/^(?:Group|Workers?|Worker)\s*[:]/i.test(line.trim())){
+      const grpM = line.match(/^(?:Group|Workers?|Worker)\s*[:]\s*([^(\n]+)/i);
+      if(grpM){
+        currentWorkerNames = grpM[1].replace(/\./g,'+').replace(/,/g,'+').trim();
+      }
+    }
+    // OLD/NEW FORMAT: "Project: Site 572, 3P"
+    else {
+      const projSiteM = line.match(/Project\s*:?\s*[Ss]ite\s*(572|innovo|basatin)/i);
+      if(projSiteM){
+        const ps = projSiteM[1].toLowerCase();
+        site = ps==='572'?'572':ps==='innovo'?'innovo':'basatin';
+        sectionSite = site;
+        currentWorkerNames = '';
+        currentWorkArea = 'Unknown';
+      }
+      else if(sl.includes('site=572')){ site='572'; sectionSite='572'; }
+      else if(/^site=innovo/i.test(line.trim())){ site='innovo'; sectionSite='innovo'; }
+      else if(/^site=basatin/i.test(line.trim())){ site='basatin'; sectionSite='basatin'; }
+    }
+    // "Daily wage" / "CORE" / "DAILY WAGE" section headers — keep site, reset area
+    if(/^(?:daily\s*wage|core)\s*[-–]?\s*\d*P?\s*$/i.test(line.trim())){ currentWorkArea = 'Unknown'; }
     // Worker group lines: inline tag overrides ONLY if different from section site
     // BUT: if sectionSite=572 and group says (Basatin), trust the section header
     // because Bilal sometimes writes wrong site on group lines
@@ -2992,7 +3074,7 @@ async function parseAndSave(){
       else ibas=r2(ibas+inc);
 
       rows.push({desc:line.trim().substring(0,52),qty,unit,site:lineSite,rate,inc});
-      workItems.push({work_date:workDate,worker_names:workerNames||null,site:lineSite,work_type:workType||null,quantity:qty,unit,rate,income:inc});
+      workItems.push({work_date:workDate,worker_names:workerNames||null,site:lineSite,work_area:currentWorkArea||'Unknown',work_type:workType||null,quantity:qty,unit,rate,income:inc});
     }
   });
 
@@ -3142,6 +3224,7 @@ async function parseAndSave(){
           work_date:workDate,
           worker_names:(it.worker_names||'').substring(0,100),
           site:it.site||'572',
+          work_area:(it.work_area||'Unknown').substring(0,100),
           work_type:(it.work_type||'').substring(0,100),
           quantity:parseFloat(it.quantity)||0,
           unit:it.unit||'LM',
@@ -5272,6 +5355,191 @@ async function loadProjectPage(site){
     if(el2) el2.innerHTML = `<div class="alert danger"><div>Error loading ${site} data: ${e.message}</div></div>`;
     console.error('Project page error:', e);
   }
+}
+
+
+// ══════════ AREA TRACKER ══════════
+let areaTrackerLoaded = false;
+
+async function loadAreaTracker(){
+  const site = document.getElementById('atSite').value;
+  const month = document.getElementById('atMonth').value;
+  const el = document.getElementById('atContent');
+  const flagEl = document.getElementById('atFlags');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading area data...</div>';
+  flagEl.innerHTML = '';
+
+  try {
+    // Fetch work_items with work_area
+    let query = '?select=work_date,site,work_area,work_type,quantity,unit,income,worker_names&order=work_date.asc,site.asc,work_area.asc';
+    if(site !== 'all') query += `&site=eq.${site}`;
+    const items = await sbGet('work_items', query);
+
+    // Filter by month if set
+    const filtered = month === 'all' ? items : items.filter(it => it.work_date && it.work_date.startsWith(month));
+
+    if(!filtered.length){
+      el.innerHTML = '<div class="alert warn"><div>No area data found. Save messages using the new format with Work Area fields.</div></div>';
+      return;
+    }
+
+    // ── Detect flagged (missing) areas ──
+    const flags = filtered.filter(it => !it.work_area || it.work_area === 'Unknown' || /^⚠|^area\s*name$/i.test(it.work_area||''));
+    if(flags.length > 0){
+      const flagDates = [...new Set(flags.map(f => f.work_date))];
+      flagEl.innerHTML = `<div class="alert warn"><div>⚠ <strong>${flags.length} entries missing area name</strong> on ${flagDates.length} date(s): ${flagDates.map(d=>fmt_date(d)).join(', ')} — check with Bilal to fill in area details.</div></div>`;
+    }
+
+    // ── Aggregate by site → area → work_type ──
+    const agg = {}; // site → area → { total_qty, total_income, work_types:{}, dates:[], workers:Set }
+    filtered.forEach(function(it){
+      const s = it.site || '572';
+      const area = it.work_area || 'Unknown';
+      const wt = (it.work_type||'Other').replace(/\s*\(.*?\)/g,'').trim();
+      const qty = parseFloat(it.quantity||0);
+      const inc = parseFloat(it.income||0);
+
+      if(!agg[s]) agg[s] = {};
+      if(!agg[s][area]) agg[s][area] = { total_qty:0, total_income:0, work_types:{}, dates:new Set(), workers:new Set() };
+
+      agg[s][area].total_qty = parseFloat((agg[s][area].total_qty + qty).toFixed(2));
+      agg[s][area].total_income = parseFloat((agg[s][area].total_income + inc).toFixed(2));
+      agg[s][area].dates.add(it.work_date);
+      (it.worker_names||'').split('+').forEach(n=>{ const nm=n.trim(); if(nm&&nm!=='—') agg[s][area].workers.add(nm); });
+
+      if(!agg[s][area].work_types[wt]) agg[s][area].work_types[wt] = {qty:0, income:0};
+      agg[s][area].work_types[wt].qty = parseFloat((agg[s][area].work_types[wt].qty + qty).toFixed(2));
+      agg[s][area].work_types[wt].income = parseFloat((agg[s][area].work_types[wt].income + inc).toFixed(2));
+    });
+
+    // ── Render ──
+    const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+    const siteColor = {'572':'var(--teal)','innovo':'var(--purple)','basatin':'var(--amber)'};
+    const siteOrder = ['572','innovo','basatin'];
+
+    let html = '';
+    siteOrder.forEach(function(s){
+      if(!agg[s] || (site !== 'all' && site !== s)) return;
+      const areas = Object.keys(agg[s]).sort();
+      const siteTotal = areas.reduce((sum,a)=>sum+agg[s][a].total_income,0);
+      const isFlagged = area => !area || area==='Unknown' || /^⚠/i.test(area);
+
+      html += `<div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:15px;font-weight:700;color:${siteColor[s]}">${siteLabel[s]||s}</div>
+          <div style="font-size:14px;font-weight:600;color:var(--green)">AED ${f(siteTotal)} total</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="border-bottom:.5px solid var(--border2)">
+            <th style="text-align:left;padding:7px 8px;font-size:10px;color:var(--ink3)">AREA</th>
+            <th style="text-align:left;padding:7px 8px;font-size:10px;color:var(--ink3)">WORK DONE</th>
+            <th style="text-align:right;padding:7px 8px;font-size:10px;color:var(--ink3)">TOTAL QTY</th>
+            <th style="text-align:right;padding:7px 8px;font-size:10px;color:var(--ink3)">INCOME</th>
+            <th style="text-align:right;padding:7px 8px;font-size:10px;color:var(--ink3)">DAYS</th>
+            <th style="text-align:left;padding:7px 8px;font-size:10px;color:var(--ink3)">WORKERS</th>
+          </tr></thead>
+          <tbody>`;
+
+      areas.forEach(function(area){
+        const d = agg[s][area];
+        const flagged = isFlagged(area);
+        const areaDisplay = flagged
+          ? `<span style="color:var(--amber)">⚠ ${area==='Unknown'?'Area not specified':area}</span>`
+          : area;
+        const wtSummary = Object.entries(d.work_types)
+          .filter(([,v])=>v.qty>0)
+          .map(([wt,v])=>`${wt}: ${v.qty.toFixed(1)} LM`)
+          .join('<br>');
+        const workersList = [...d.workers].slice(0,6).join(', ') + (d.workers.size>6?` +${d.workers.size-6} more`:'');
+
+        html += `<tr style="border-bottom:.5px solid var(--border3);${flagged?'background:rgba(244,162,97,.05)':''}">
+          <td style="padding:7px 8px;font-size:12px;font-weight:500">${areaDisplay}</td>
+          <td style="padding:7px 8px;font-size:11px;color:var(--ink2);line-height:1.6">${wtSummary||'—'}</td>
+          <td style="text-align:right;padding:7px 8px;font-size:13px;font-weight:600">${d.total_qty.toFixed(1)} LM</td>
+          <td style="text-align:right;padding:7px 8px;font-size:13px;font-weight:600;color:var(--green)">${d.total_income>0?'AED '+d.total_income.toFixed(0):'—'}</td>
+          <td style="text-align:right;padding:7px 8px;font-size:11px;color:var(--ink3)">${d.dates.size}</td>
+          <td style="padding:7px 8px;font-size:10px;color:var(--ink3)">${workersList||'—'}</td>
+        </tr>`;
+      });
+
+      html += `</tbody></table></div>`;
+    });
+
+    el.innerHTML = html;
+    areaTrackerLoaded = true;
+
+    // Store for WA report
+    window._areaAgg = agg;
+    window._areaMonth = month;
+    window._areaSite = site;
+
+  } catch(e){
+    el.innerHTML = `<div class="alert danger"><div>Error: ${e.message}</div></div>`;
+    console.error('Area tracker error:', e);
+  }
+}
+
+async function generateWAReport(){
+  if(!window._areaAgg){ await loadAreaTracker(); }
+  const agg = window._areaAgg;
+  const month = window._areaMonth;
+  const site = window._areaSite;
+  const MONTH_NAMES = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+  const monthLabel = month === 'all' ? 'All Time' : MONTH_NAMES[month.split('-')[1]] + ' ' + month.split('-')[0];
+  const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+  const siteOrder = ['572','innovo','basatin'];
+
+  let report = `📊 *AL FAKHIRA — AREA WORKDONE REPORT*\n`;
+  report += `📅 ${monthLabel}\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  siteOrder.forEach(function(s){
+    if(!agg[s] || (site !== 'all' && site !== s)) return;
+    const areas = Object.keys(agg[s]).sort().filter(a => a !== 'Unknown' && !/^⚠/.test(a));
+    if(!areas.length) return;
+
+    report += `📍 *${siteLabel[s]||s}*\n`;
+    report += `─────────────────────\n`;
+
+    areas.forEach(function(area){
+      const d = agg[s][area];
+      report += `📌 *${area}*\n`;
+      Object.entries(d.work_types).filter(([,v])=>v.qty>0).forEach(([wt,v])=>{
+        report += `   ${wt}: ${v.qty.toFixed(1)} LM\n`;
+      });
+      report += `   💰 Income: AED ${d.total_income.toFixed(0)}\n`;
+      report += `   📆 Days worked: ${d.dates.size}\n\n`;
+    });
+
+    const siteTotal = areas.reduce((s2,a)=>s2+agg[s][a].total_income,0);
+    const siteTotalQty = areas.reduce((s2,a)=>s2+agg[s][a].total_qty,0);
+    report += `   *Site Total: ${siteTotalQty.toFixed(1)} LM | AED ${siteTotal.toFixed(0)}*\n`;
+    report += `\n`;
+  });
+
+  report += `━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `_Generated from Al Fakhira Dashboard_`;
+
+  document.getElementById('atWAText').textContent = report;
+  document.getElementById('atWAReport').style.display = 'block';
+  document.getElementById('atWAReport').scrollIntoView({behavior:'smooth'});
+}
+
+function copyWAReport(){
+  const text = document.getElementById('atWAText').textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    const btn = event.target;
+    btn.textContent = '✅ Copied!';
+    setTimeout(()=>{ btn.textContent = '📋 Copy'; }, 2000);
+  }).catch(function(){
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
 }
 
 </script>
