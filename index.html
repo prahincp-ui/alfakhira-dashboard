@@ -5760,16 +5760,22 @@ async function loadSiteRegister(){
 
   try {
     // Fetch all work_items for this month
+    // Calculate correct last day of selected month
+    const [yr, mn] = month.split('-').map(Number);
+    const lastDay = new Date(yr, mn, 0).getDate();
+    const lastDate = `${month}-${String(lastDay).padStart(2,'0')}`;
+
     const items = await sbGet('work_items',
-      `?work_date=gte.${month}-01&work_date=lte.${month}-31&select=work_date,site,work_type,quantity,unit&order=work_date.asc`);
+      `?work_date=gte.${month}-01&work_date=lte.${lastDate}&select=work_date,site,work_type,quantity,unit&order=work_date.asc`);
 
     // Also fetch previous month for opening balance
-    const [yr, mn] = month.split('-').map(Number);
     const prevMonthEnd = new Date(yr, mn-1, 0);
     const prevYr = prevMonthEnd.getFullYear();
     const prevMn = String(prevMonthEnd.getMonth()+1).padStart(2,'0');
+    const prevLastDay = new Date(prevYr, prevMonthEnd.getMonth()+1, 0).getDate();
+    const prevLastDate = `${prevYr}-${prevMn}-${String(prevLastDay).padStart(2,'0')}`;
     const prevItems = await sbGet('work_items',
-      `?work_date=lte.${prevYr}-${prevMn}-31&select=work_date,site,work_type,quantity,unit&order=work_date.asc`);
+      `?work_date=lte.${prevLastDate}&select=work_date,site,work_type,quantity,unit&order=work_date.asc`);
 
     // ── Build cumulative up to each date ──
     // For each site+item: running total
