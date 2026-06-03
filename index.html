@@ -1536,7 +1536,7 @@ tr:hover td{background:var(--surface2)}
           <div class="div"></div>
           <div class="plr tot rd"><span>NET LOSS ✗</span><span>AED -1,001.64</span></div>
           <div class="plr"><span style="color:var(--ink3)">Per person (9p)</span><span style="color:var(--ink3)">AED -111.29</span></div>
-          <div class="plr"><span style="color:var(--ink3)">Monthly projection ×26</span><span style="color:var(--ink3)">AED -26043</span></div>
+          <div class="plr"><span style="color:var(--ink3)">Monthly projection ×26</span><span style="color:var(--ink3)">AED -40020</span></div>
         </div>
       </div>
       <div class="alert warn" style="margin-top:0"><div><strong>Absent:</strong> Black=11P</div></div>
@@ -2198,31 +2198,98 @@ tr:hover td{background:var(--surface2)}
 <!-- ══════════ DAILY INPUT ══════════ -->
 <div id="inp" class="sec">
   <div class="card" style="margin-bottom:14px">
-    <div class="chd">Paste WhatsApp Daily Report from Billal</div>
-    <p style="font-size:11px;color:var(--ink3);margin-bottom:12px;line-height:1.7">
-      Copy Billal's WhatsApp message and paste below. The system calculates P&amp;L using all confirmed rates and saves permanently to the database.
+    <div class="chd">Daily Input — Paste Billal's Messages</div>
+    <p style="font-size:11px;color:var(--ink3);margin-bottom:14px;line-height:1.7">
+      Paste each site message in its own box. The header message (date, absent, workforce) goes in any box — it will be read from there. Click <strong>Calculate &amp; Save All</strong> when done.
     </p>
-    <div class="wab">
-      <textarea id="wai" placeholder="Paste WhatsApp message here...
+
+    <!-- DATE + HEADER (auto-detected) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+
+      <!-- 572 BOX -->
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--teal)"></div>
+          <div style="font-size:12px;font-weight:600;color:var(--teal)">📍 Hilalco 572</div>
+        </div>
+        <textarea id="wai572" rows="14" style="width:100%;font-size:11px;font-family:'DM Mono',monospace;padding:10px;border:.5px solid var(--teal);border-radius:var(--border-radius-md);background:var(--bg1);color:var(--ink1);resize:vertical;line-height:1.6" placeholder="Paste 📍 Site 572 message here...
 
 Example:
-15-5-2026
-Absent- Jenpaul. Altab
-Total Workforce=22P
-AL Fakhira+8P 2Forman = P
-Daily wage -14P
-Site=572
-2P. Bilal. Singlesh (Basatin)
-Taile plaza =30.Square m)13.33H
-..."></textarea>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
-        <button class="btn gld" onclick="parseAndSave()">Calculate &amp; Save to Database</button>
-        <button class="btn" onclick="document.getElementById(&#39;wai&#39;).value=&#39;&#39;;document.getElementById(&#39;pr2&#39;).innerHTML=&#39;&#39;;document.getElementById(&#39;pr2&#39;).style.display=&#39;none&#39;">Clear</button>
-        <button class="btn" onclick="testDB()" style="border-color:var(--blue-mid);color:var(--blue)">Test DB Connection</button>
-        <button class="btn" onclick="patchOverheads()" style="border-color:var(--amber-mid);color:var(--amber);font-weight:600">⚠ Patch Historical Overheads</button>
-        <button class="btn" onclick="diagnoseDB()" style="border-color:var(--red-mid);color:var(--red)">Diagnose DB</button>
-        <span id="saveStatus" style="font-size:11px;color:var(--ink3)"></span>
+📍 Site 572
+CORE – 2P
+Group: Faruk, Titu
+Work Area: museum parking
+• Kerb Fixing = 72.Lm | 24H
+Per Person Overtime = 5H
+
+DAILY WAGE – 1P
+Worker: Etienne (1P)
+Work Area: museum parking
+• Grutting = 120.Lm"></textarea>
       </div>
+
+      <!-- BASATIN BOX -->
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--amber)"></div>
+          <div style="font-size:12px;font-weight:600;color:var(--amber)">📍 Basatin</div>
+        </div>
+        <textarea id="waiBas" rows="14" style="width:100%;font-size:11px;font-family:'DM Mono',monospace;padding:10px;border:.5px solid var(--amber);border-radius:var(--border-radius-md);background:var(--bg1);color:var(--ink1);resize:vertical;line-height:1.6" placeholder="Paste 📍 Site Basatin message here...
+
+Example:
+📍 Site Basatin
+CORE – 6P
+Group: Bilal, Singlesh (2P)
+Work Area: Eco Corniche
+• Kerb Fixing = 27.Lm
+Per Person Overtime = 1H
+
+DAILY WAGE – 7P
+Workers: Sojol, Don Deu (2P)
+Work Area: Eco Corniche
+• Kerb Fixing = 25.2Lm"></textarea>
+      </div>
+
+      <!-- INNOVO BOX -->
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--purple)"></div>
+          <div style="font-size:12px;font-weight:600;color:var(--purple)">📍 Innovo</div>
+        </div>
+        <textarea id="waiInn" rows="14" style="width:100%;font-size:11px;font-family:'DM Mono',monospace;padding:10px;border:.5px solid var(--purple);border-radius:var(--border-radius-md);background:var(--bg1);color:var(--ink1);resize:vertical;line-height:1.6" placeholder="Paste 📍 Site Innovo message here...
+
+Example:
+📍 Site Innovo
+DAILY WAGE – 4P
+Workers: Evod, Josue (2P)
+Work Area: cluster 03#Rod=7
+• Kerb Fixing Roll = 46.2Lm
+Per Person Overtime = 0H"></textarea>
+      </div>
+    </div>
+
+    <!-- HEADER BOX (date, absent, workforce) -->
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px">📋 Header Message (date, absent, workforce)</div>
+      <textarea id="wai" rows="5" style="width:100%;font-size:11px;font-family:'DM Mono',monospace;padding:10px;border:.5px solid var(--border2);border-radius:var(--border-radius-md);background:var(--bg1);color:var(--ink1);resize:vertical;line-height:1.6" placeholder="Paste the first message here (date, absent, workforce counts)...
+
+Example:
+Date: 1-06-2026
+Absent: Altab, Israel, Shakibul, Jado
+Total Workforce: 20P
+Core Workers:
+• AL Fakhira: 8P + 2 Foreman
+Daily Wage: 12P"></textarea>
+    </div>
+
+    <!-- BUTTONS -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn gld" onclick="parseAndSaveMulti()" style="font-size:13px;padding:8px 20px">⚡ Calculate &amp; Save All Sites</button>
+      <button class="btn" onclick="clearAllInputs()">Clear All</button>
+      <button class="btn" onclick="testDB()" style="border-color:var(--blue-mid);color:var(--blue)">Test DB</button>
+      <button class="btn" onclick="patchOverheads()" style="border-color:var(--amber-mid);color:var(--amber);font-weight:600">⚠ Patch Overheads</button>
+      <button class="btn" onclick="diagnoseDB()" style="border-color:var(--red-mid);color:var(--red)">Diagnose DB</button>
+      <span id="saveStatus" style="font-size:11px;color:var(--ink3)"></span>
     </div>
     <div id="pr2" style="display:none"></div>
   </div>
@@ -2690,18 +2757,23 @@ async function loadDayDetail(dateStr){
         // Method 1: use names from worker_names if available
         // Method 2: fallback — split total cost proportionally by income share per site
         const siteCostMap = {'572':0,'innovo':0,'basatin':0};
-        const costedWorkers = new Set();
+        // Track costed workers PER SITE — a worker can appear in multiple sites
+        const costedBySite = {'572':new Set(),'innovo':new Set(),'basatin':new Set()};
         let hasNameData = false;
 
         items.forEach(function(it){
-          const names = (it.worker_names||'').split('+').map(n=>n.trim()).filter(n=>n&&n!=='—'&&n.length>1);
+          const s = it.site||'572';
+          const names = (it.worker_names||'').split(/[+,]/).map(n=>n.trim()).filter(n=>n&&n!=='—'&&n.length>1);
           if(names.length > 0) hasNameData = true;
           names.forEach(function(nm){
-            const key = nm.replace(/\s+/g,'');
-            if(costedWorkers.has(key)) return;
-            costedWorkers.add(key);
-            const cost = CORE_DAILY[nm]||CORE_DAILY[key]||DW_DAILY_RATE[nm]||DW_DAILY_RATE[key]||0;
-            if(cost > 0) siteCostMap[it.site] = (siteCostMap[it.site]||0) + cost;
+            // Normalize to Title Case
+            const titled = nm.charAt(0).toUpperCase()+nm.slice(1).toLowerCase();
+            const key = titled.replace(/\s+/g,'');
+            if(!costedBySite[s]) costedBySite[s] = new Set();
+            if(costedBySite[s].has(key)) return; // already counted for this site
+            costedBySite[s].add(key);
+            const cost = CORE_DAILY[titled]||CORE_DAILY[key]||DW_DAILY_RATE[titled]||DW_DAILY_RATE[key]||0;
+            if(cost > 0) siteCostMap[s] = (siteCostMap[s]||0) + cost;
           });
         });
 
@@ -3095,8 +3167,8 @@ async function parseAndSave(){
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
       else ibas=r2(ibas+inc);
 
-      rows.push({desc:line.trim().substring(0,52),qty,unit,site:lineSite,rate,inc});
-      workItems.push({work_date:workDate,worker_names:workerNames||null,site:lineSite,work_area:currentWorkArea||'Unknown',work_type:workType||null,quantity:qty,unit,rate,income:inc});
+      rows.push({desc:line.trim().substring(0,52),qty,unit,site:lineSite,rate,inc:netInc}); // display net income
+      workItems.push({work_date:workDate,worker_names:workerNames||null,site:lineSite,work_area:currentWorkArea||'Unknown',work_type:workType||null,quantity:qty,unit,rate,income:netInc}); // netInc applies 5% retention for 572
     }
   });
 
@@ -3348,9 +3420,11 @@ async function populatePerfDates(){
 }
 
 // ── PARSE WORKER CONTRIBUTIONS FROM RAW WHATSAPP ──
-function parseWorkerContributions(rawText, totalWorkers){
+function parseWorkerContributions(rawText, totalWorkers, totalCost){
   if(!rawText) return [];
-  const OH_PER_PERSON = r2(1100 / (totalWorkers || 1));
+  // True per-person cost = total daily cost ÷ total workers (not just overhead)
+  // Passed in as totalCost if available, otherwise estimate from overhead
+  const OH_PER_PERSON = r2((totalCost > 0 ? totalCost : 1100) / (totalWorkers || 1));
   const workers = {};
 
   const VARIANTS = {'Billal':'Bilal','Singlish':'Singlesh','Farooq':'Faruk','Gafur':'Gofur',
@@ -3494,7 +3568,7 @@ async function loadPerf(){
       return;
     }
 
-    const workers = parseWorkerContributions(d.whatsapp_raw, d.total_workers);
+    const workers = parseWorkerContributions(d.whatsapp_raw, d.total_workers, parseFloat(d.total_cost||0));
     // Correct overhead for this specific date
     const _pc = dateStr >= '2026-01-01' && dateStr <= '2026-03-31';
     const _pm = dateStr >= '2026-03-08' && dateStr <= '2026-04-30';
@@ -3511,12 +3585,12 @@ async function loadPerf(){
           <div>
             <div class="sl">${fmt_date(dateStr)} — Individual Performance Analysis</div>
             <div class="sv p" style="font-size:22px">${d.total_workers} workers on site</div>
-            <div class="ss">Overhead burden: AED ${_perfOH.toFixed(2)} ÷ ${d.total_workers} = <strong style="color:#6ecf8a">AED ${oh.toFixed(2)}/person</strong></div>
+            <div class="ss">Total cost: AED ${f(parseFloat(d.total_cost||0))} ÷ ${d.total_workers} workers = <strong style="color:#6ecf8a">AED ${(parseFloat(d.total_cost||0)/(d.total_workers||1)).toFixed(2)}/person</strong></div>
           </div>
           <div style="text-align:right">
             <div class="sl">If 5 more workers (${d.total_workers+5}p)</div>
-            <div style="font-family:'Fraunces',serif;font-size:18px;color:#6ecf8a">AED ${(_perfOH/(d.total_workers+5)).toFixed(2)}/person</div>
-            <div class="ss">Save AED ${(oh - _perfOH/(d.total_workers+5)).toFixed(2)}/person overhead</div>
+            <div style="font-family:'Fraunces',serif;font-size:18px;color:#6ecf8a">AED ${(parseFloat(d.total_cost||0)/(d.total_workers+5)).toFixed(2)}/person</div>
+            <div class="ss">Save AED ${((parseFloat(d.total_cost||0)/(d.total_workers||1)) - (parseFloat(d.total_cost||0)/(d.total_workers+5))).toFixed(2)}/person with 5 more workers</div>
           </div>
         </div>
       </div>
@@ -3576,7 +3650,7 @@ async function loadPerf(){
               <td class="tr">AED ${workers.reduce((s,w)=>s+w.income,0).toFixed(2)}</td>
               <td class="tr">AED ${workers.reduce((s,w)=>s+w.dailyCost,0).toFixed(2)}</td>
               <td class="tr">AED ${workers.reduce((s,w)=>s+w.otCost,0).toFixed(2)}</td>
-              <td class="tr">AED 1,100.00</td>
+              <td class="tr">AED ${_perfOH.toFixed(2)}</td>
               <td class="tr">AED ${workers.reduce((s,w)=>s+w.totalCost,0).toFixed(2)}</td>
               <td class="tr" style="color:var(--${parseFloat(d.net_pl)>=0?'green':'red'})">${parseFloat(d.net_pl)>=0?'+':''}AED ${parseFloat(d.net_pl).toFixed(2)}</td>
               <td></td>
@@ -3617,7 +3691,7 @@ async function loadPerf(){
             <div style="font-size:10px;color:var(--ink3);display:flex;gap:14px;flex-wrap:wrap;padding:6px 0;border-top:.5px solid var(--border)">
               <span>Salary: AED ${w.dailyCost.toFixed(2)}</span>
               ${w.otHrs>0?`<span>OT: ${w.otHrs}h × 3.8 = AED ${w.otCost.toFixed(2)}</span>`:'<span>No OT</span>'}
-              <span>Overhead share (1100÷${d.total_workers}): AED ${w.overheadShare.toFixed(2)}</span>
+              <span>Cost share (total÷${d.total_workers}): AED ${w.overheadShare.toFixed(2)}</span>
               <span style="font-weight:500;color:var(--ink)">Total cost: AED ${w.totalCost.toFixed(2)}</span>
             </div>
           </div>`;
@@ -6057,6 +6131,49 @@ function exportRegister(){
   a.download = `Al_Fakhira_Site_Register_${month}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+
+// ══════════ MULTI-BOX PARSE & SAVE ══════════
+function clearAllInputs(){
+  ['wai','wai572','waiBas','waiInn'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  document.getElementById('pr2').innerHTML = '';
+  document.getElementById('pr2').style.display = 'none';
+  document.getElementById('saveResult').innerHTML = '';
+}
+
+async function parseAndSaveMulti(){
+  const status = document.getElementById('saveStatus');
+  status.textContent = '⏳ Processing...';
+
+  // Combine all boxes into one message
+  // Header goes first, then each site box prefixed with site marker
+  const header = (document.getElementById('wai')?.value || '').trim();
+  const txt572 = (document.getElementById('wai572')?.value || '').trim();
+  const txtBas = (document.getElementById('waiBas')?.value || '').trim();
+  const txtInn = (document.getElementById('waiInn')?.value || '').trim();
+
+  if(!header && !txt572 && !txtBas && !txtInn){
+    status.textContent = '❌ All boxes are empty';
+    return;
+  }
+
+  // Build combined message — site boxes already have 📍 Site header
+  // If they don't, add it
+  const ensure572 = txt572 && !/📍\s*Site\s*572/i.test(txt572) ? '📍 Site 572\n' + txt572 : txt572;
+  const ensureBas = txtBas && !/📍\s*Site\s*Basatin/i.test(txtBas) ? '📍 Site Basatin\n' + txtBas : txtBas;
+  const ensureInn = txtInn && !/📍\s*Site\s*Innovo/i.test(txtInn) ? '📍 Site Innovo\n' + txtInn : txtInn;
+
+  const combined = [header, ensure572, ensureBas, ensureInn].filter(Boolean).join('\n\n');
+
+  // Put combined into main wai and call original parseAndSave
+  document.getElementById('wai').value = combined;
+
+  // Call the existing parseAndSave
+  await parseAndSave();
 }
 
 </script>
