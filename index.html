@@ -147,7 +147,7 @@ tr:hover td{background:var(--surface2)}
   <button class="nb" onclick="show(&#39;wf&#39;,this)">Workforce</button>
   <button class="nb active" onclick="show(&#39;oh&#39;,this)">Overhead</button>
   <button class="nb" onclick="show(&#39;perf&#39;,this)">Performance</button>
-  <button class="nb" onclick="show('p572',this);loadProjectPage('572')">572 Hilalco</button>
+  <button class="nb" onclick="show('p572',this);loadProjectPage('572')">Hilalco</button>
   <button class="nb" onclick="show('pinn',this);loadProjectPage('innovo')">Innovo</button>
   <button class="nb" onclick="show('pbas',this);loadProjectPage('basatin')">Basatin</button>
   <button class="nb" onclick="show(&#39;inv&#39;,this)">Invoice Tracker</button>
@@ -2210,7 +2210,7 @@ tr:hover td{background:var(--surface2)}
       <div>
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
           <div style="width:10px;height:10px;border-radius:50%;background:var(--teal)"></div>
-          <div style="font-size:12px;font-weight:600;color:var(--teal)">📍 Hilalco 572</div>
+          <div style="font-size:12px;font-weight:600;color:var(--teal)">📍 Hilalco (572 / 591)</div>
         </div>
         <textarea id="wai572" rows="14" style="width:100%;font-size:11px;font-family:'DM Mono',monospace;padding:10px;border:.5px solid var(--teal);border-radius:var(--border-radius-md);background:var(--bg1);color:var(--ink1);resize:vertical;line-height:1.6" placeholder="Paste 📍 Site 572 message here...
 
@@ -2297,7 +2297,7 @@ Daily Wage: 12P"></textarea>
   <div class="card">
     <div class="chd">Full Rate Card — All 3 Projects</div>
     <table>
-      <thead><tr><th>Work Type</th><th>Unit</th><th class="tr">572 Hilalco</th><th class="tr">Innovo</th><th class="tr">Basatin</th><th>Notes</th></tr></thead>
+      <thead><tr><th>Work Type</th><th>Unit</th><th class="tr">Hilalco</th><th class="tr">Innovo</th><th class="tr">Basatin</th><th>Notes</th></tr></thead>
       <tbody>
         <tr><td>Kerb fixing / roll</td><td>LM</td><td class="tr"><span class="rp">5.55</span></td><td class="tr"><span class="rp">7.50</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">12.96 ✓</span></td><td style="font-size:11px">Basatin = best rate!</td></tr>
         <tr><td>Kerb cutpiece / round</td><td>LM</td><td class="tr"><span class="rp">5.55</span></td><td class="tr"><span class="rp">7.50</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">12.96 ✓</span></td><td style="font-size:11px">Billable finishing</td></tr>
@@ -2642,9 +2642,13 @@ async function loadDayDetail(dateStr){
     // Load work items if any
     let itemsHTML = '';
     try {
-      const items = await sbGet('work_items',`?work_date=eq.${dateStr}&order=site.asc,work_type.asc`);
+      const items = await sbGet('work_items',`?work_date=eq.${dateStr}&select=work_date,site,site_number,work_area,work_type,quantity,unit,rate,income,worker_names&order=site.asc,work_type.asc`);
       if(items.length){
-        const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+        const siteLabel = {'572':'Hilalco','innovo':'Innovo','basatin':'Basatin'};
+        // Get dominant site number for Hilalco items
+        const hilalcoNums = [...new Set((items||[]).filter(it=>it.site==='572'&&it.site_number).map(it=>it.site_number))];
+        const hilalcoLabel = hilalcoNums.length > 0 ? 'Hilalco ('+hilalcoNums.join(', ')+')' : 'Hilalco';
+        siteLabel['572'] = hilalcoLabel;
         const siteColor = {'572':'var(--teal)','innovo':'var(--purple)','basatin':'var(--amber)'};
         const siteOrder = ['572','innovo','basatin'];
 
@@ -2756,38 +2760,22 @@ async function loadDayDetail(dateStr){
         // Estimate worker cost per site
         // Method 1: use names from worker_names if available
         // Method 2: fallback — split total cost proportionally by income share per site
-        const siteCostMap = {'572':0,'innovo':0,'basatin':0};
-        // Track costed workers PER SITE — a worker can appear in multiple sites
-        const costedBySite = {'572':new Set(),'innovo':new Set(),'basatin':new Set()};
-        let hasNameData = false;
-
+        // Worker cost per site = (total_cost / total_workers) × workers_on_that_site
+        // Count distinct workers per site from work_items
+        const workersBySite = {'572':new Set(),'innovo':new Set(),'basatin':new Set()};
         items.forEach(function(it){
           const s = it.site||'572';
-          const names = (it.worker_names||'').split(/[+,]/).map(n=>n.trim()).filter(n=>n&&n!=='—'&&n.length>1);
-          if(names.length > 0) hasNameData = true;
-          names.forEach(function(nm){
-            // Normalize to Title Case
-            const titled = nm.charAt(0).toUpperCase()+nm.slice(1).toLowerCase();
-            const key = titled.replace(/\s+/g,'');
-            if(!costedBySite[s]) costedBySite[s] = new Set();
-            if(costedBySite[s].has(key)) return; // already counted for this site
-            costedBySite[s].add(key);
-            const cost = CORE_DAILY[titled]||CORE_DAILY[key]||DW_DAILY_RATE[titled]||DW_DAILY_RATE[key]||0;
-            if(cost > 0) siteCostMap[s] = (siteCostMap[s]||0) + cost;
+          (it.worker_names||'').split(/[+,]/).forEach(function(n){
+            const nm = n.trim();
+            if(nm && nm!=='—' && nm.length>1) workersBySite[s].add(nm.toLowerCase());
           });
         });
-
-        // Fallback: no names in DB — estimate from total_workers and income split
-        if(!hasNameData){
-          const totalWorkers = d.total_workers || 1;
-          const avgDailyCost = (parseFloat(d.total_cost||0) - _baseOverhead) / totalWorkers;
-          const totalInc = parseFloat(d.total_income||1);
-          // Distribute worker cost proportionally by site income
-          ['572','innovo','basatin'].forEach(function(s){
-            const siteInc = WORK_TYPES_LIST.reduce((sum,wt)=>{const dd2=smry[s][wt];return sum+(dd2?dd2.income:0);},0);
-            siteCostMap[s] = parseFloat(((siteInc/totalInc) * avgDailyCost * totalWorkers).toFixed(2));
-          });
-        }
+        const costPerPerson = parseFloat(d.total_cost||0) / (d.total_workers||1);
+        const siteCostMap = {
+          '572':    parseFloat((workersBySite['572'].size    * costPerPerson).toFixed(2)),
+          'innovo': parseFloat((workersBySite['innovo'].size * costPerPerson).toFixed(2)),
+          'basatin':parseFloat((workersBySite['basatin'].size* costPerPerson).toFixed(2))
+        };
 
         siteDefs.forEach(function(sd){
           let totalInc=0, totalCost=0;
@@ -2835,7 +2823,7 @@ async function loadDayDetail(dateStr){
           siteSummaryHTML+='<div style="text-align:right">';
           if(totalInc>0){
             siteSummaryHTML+='<div style="font-size:16px;font-weight:700;color:var(--green)">AED '+totalInc.toFixed(0)+' income</div>';
-            siteSummaryHTML+='<div style="font-size:12px;color:'+(totalDiff>=0?'var(--green)':'var(--red)')+'">Net vs worker cost: '+(totalDiff>=0?'+':'')+'AED '+totalDiff.toFixed(0)+'</div>';
+            siteSummaryHTML+='<div style="font-size:11px;color:var(--ink3)">Worker cost: AED '+totalCost.toFixed(0)+' · Net vs worker: <span style="color:'+(totalDiff>=0?'var(--green)':'var(--red)')+';">'+(totalDiff>=0?'+':'')+'AED '+totalDiff.toFixed(0)+'</span></div>';
           } else {
             siteSummaryHTML+='<div style="font-size:13px;color:var(--ink4)">No work today</div>';
           }
@@ -2887,14 +2875,28 @@ async function loadDayDetail(dateStr){
                 '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">OVERHEAD</div>' +
                 '<div style="font-size:24px;font-weight:700;color:#f4a261">AED ' + _baseOverhead.toFixed(0) + '</div>' +
                 '<div style="font-size:10px;opacity:.45">fixed daily overhead</div></div>' +
+                '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">TOTAL COST</div>' +
+                '<div style="font-size:24px;font-weight:700;color:#f08080">AED ' + f(totalCostFull) + '</div>' +
+                '<div style="font-size:10px;opacity:.45">all costs combined</div></div>' +
                 '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">NET P&L</div>' +
                 '<div style="font-size:28px;font-weight:700;color:' + (isPL?'#6ecf8a':'#f08080') + '">' + (isPL?'+':'') + 'AED ' + f(Math.abs(netPL)) + '</div>' +
                 '<div style="font-size:11px;font-weight:600;color:' + (isPL?'#6ecf8a':'#f08080') + '">' + (isPL?'PROFIT ✓':'LOSS ✗') + '</div></div>' +
               '</div>' +
               '<div style="border-top:.5px solid rgba(255,255,255,.15);padding-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">' +
-                '<div><div style="font-size:10px;opacity:.5;margin-bottom:3px">Hilalco 572</div><div style="font-size:16px;font-weight:600;color:#6ecf8a">AED ' + inc572.toFixed(0) + '</div></div>' +
-                '<div><div style="font-size:10px;opacity:.5;margin-bottom:3px">Innovo</div><div style="font-size:16px;font-weight:600;color:#6ecf8a">AED ' + incInn.toFixed(0) + '</div></div>' +
-                '<div><div style="font-size:10px;opacity:.5;margin-bottom:3px">Basatin</div><div style="font-size:16px;font-weight:600;color:#6ecf8a">AED ' + incBas.toFixed(0) + '</div></div>' +
+                (function(){
+                  function sc(label, inc, wCnt, cpp){
+                    const wc = Math.round(wCnt*cpp);
+                    const net = Math.round(inc-wc);
+                    return '<div style="text-align:center;background:rgba(255,255,255,.06);border-radius:6px;padding:8px 6px">' +
+                      '<div style="font-size:10px;opacity:.5;margin-bottom:3px">'+label+'</div>' +
+                      '<div style="font-size:13px;font-weight:600;color:#6ecf8a">AED '+inc.toFixed(0)+'</div>' +
+                      '<div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:1px">Cost AED '+wc+'</div>' +
+                      '<div style="font-size:12px;font-weight:700;color:'+(net>=0?'#6ecf8a':'#f08080')+';margin-top:2px">'+(net>=0?'+':'')+'AED '+net+'</div></div>';
+                  }
+                  const cpp = parseFloat(d.total_cost||0)/(d.total_workers||1);
+                  const w572=workersBySite['572'].size||0, wInn=workersBySite['innovo'].size||0, wBas=workersBySite['basatin'].size||0;
+                  return sc('Hilalco 572',inc572,w572,cpp)+sc('Innovo',incInn,wInn,cpp)+sc('Basatin',incBas,wBas,cpp);
+                })() +
               '</div>' +
             '</div>';
           })()}
@@ -3035,7 +3037,7 @@ async function parseAndSave(){
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
 
-  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown';
+  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown', currentSiteNumber='572';
   txt.split('\n').forEach(line=>{
     const sl = line.toLowerCase();
 
@@ -3043,12 +3045,13 @@ async function parseAndSave(){
     // OLD FORMAT: "Site=572" heading
     // NEW FORMAT: "Project: Site 572, 3P" or "Project :site innovo, 1P"
     // Both formats set sectionSite
-    // NEW FORMAT: "📍 Site 572" or "📍 Site Basatin"
-    const emojiSiteM = line.match(/📍\s*Site\s*(572|innovo|basatin)/i);
+    // NEW FORMAT: "📍 Site 572" or "📍 Site 591" or "📍 Site Basatin"
+    const emojiSiteM = line.match(/📍\s*Site\s*(\S+)/i);
     if(emojiSiteM){
-      const ps = emojiSiteM[1].toLowerCase();
-      site = ps==='572'?'572':ps==='innovo'?'innovo':'basatin';
-      sectionSite = site;
+      const ps = emojiSiteM[1].toLowerCase().trim();
+      if(ps==='innovo') { site='innovo'; sectionSite='innovo'; }
+      else if(ps==='basatin') { site='basatin'; sectionSite='basatin'; }
+      else { site='572'; sectionSite='572'; currentSiteNumber=emojiSiteM[1].trim(); } // any Hilalco site (572,591,etc)
       currentWorkerNames = '';
       currentWorkArea = 'Unknown';
     }
@@ -3070,11 +3073,12 @@ async function parseAndSave(){
     }
     // OLD/NEW FORMAT: "Project: Site 572, 3P"
     else {
-      const projSiteM = line.match(/Project\s*:?\s*[Ss]ite\s*(572|innovo|basatin)/i);
+      const projSiteM = line.match(/Project\s*:?\s*[Ss]ite\s*(\S+)/i);
       if(projSiteM){
-        const ps = projSiteM[1].toLowerCase();
-        site = ps==='572'?'572':ps==='innovo'?'innovo':'basatin';
-        sectionSite = site;
+        const ps = projSiteM[1].toLowerCase().trim();
+        if(ps==='innovo') { site='innovo'; sectionSite='innovo'; }
+        else if(ps==='basatin') { site='basatin'; sectionSite='basatin'; }
+        else { site='572'; sectionSite='572'; currentSiteNumber=projSiteM[1].trim(); }
         currentWorkerNames = '';
         currentWorkArea = 'Unknown';
       }
@@ -3168,7 +3172,7 @@ async function parseAndSave(){
       else ibas=r2(ibas+inc);
 
       rows.push({desc:line.trim().substring(0,52),qty,unit,site:lineSite,rate,inc:netInc}); // display net income
-      workItems.push({work_date:workDate,worker_names:workerNames||null,site:lineSite,work_area:currentWorkArea||'Unknown',work_type:workType||null,quantity:qty,unit,rate,income:netInc}); // netInc applies 5% retention for 572
+      workItems.push({work_date:workDate,worker_names:workerNames||null,site:lineSite,site_number:lineSite==='572'?currentSiteNumber:'',work_area:currentWorkArea||'Unknown',work_type:workType||null,quantity:qty,unit,rate,income:netInc}); // netInc applies 5% retention for 572
     }
   });
 
@@ -3319,6 +3323,7 @@ async function parseAndSave(){
           worker_names:(it.worker_names||'').substring(0,100),
           site:it.site||'572',
           work_area:(it.work_area||'Unknown').substring(0,100),
+          site_number:(it.site_number||'').substring(0,20),
           work_type:(it.work_type||'').substring(0,100),
           quantity:parseFloat(it.quantity)||0,
           unit:it.unit||'LM',
@@ -5534,7 +5539,7 @@ async function loadAreaTracker(){
     });
 
     // ── Render ──
-    const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+    const siteLabel = {'572':'Hilalco','innovo':'Innovo','basatin':'Basatin'};
     const siteColor = {'572':'var(--teal)','innovo':'var(--purple)','basatin':'var(--amber)'};
     const siteOrder = ['572','innovo','basatin'];
 
@@ -5607,7 +5612,7 @@ async function generateWAReport(){
   const site = window._areaSite;
   const MONTH_NAMES = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
   const monthLabel = month === 'all' ? 'All Time' : MONTH_NAMES[month.split('-')[1]] + ' ' + month.split('-')[0];
-  const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+  const siteLabel = {'572':'Hilalco','innovo':'Innovo','basatin':'Basatin'};
   const siteOrder = ['572','innovo','basatin'];
 
   let report = `📊 *AL FAKHIRA — AREA WORKDONE REPORT*\n`;
@@ -5667,7 +5672,7 @@ function copyWAReport(){
 // ══════════ DAILY WHATSAPP REPORT ══════════
 async function generateDailyReport(workDate, workItems, net, totalIncome, totalCost, isHoliday){
   const resultEl = document.getElementById('saveResult');
-  const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+  const siteLabel = {'572':'Hilalco','innovo':'Innovo','basatin':'Basatin'};
   const siteEmoji = {'572':'🏗','innovo':'🔵','basatin':'🟡'};
   const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const d = new Date(workDate);
