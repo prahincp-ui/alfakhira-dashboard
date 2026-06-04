@@ -152,7 +152,11 @@ tr:hover td{background:var(--surface2)}
   <button class="nb" onclick="show('pbas',this);loadProjectPage('basatin')">Basatin</button>
   <button class="nb" onclick="show(&#39;inv&#39;,this)">Invoice Tracker</button>
   <button class="nb" onclick="show('area',this);loadAreaTracker()">Area Tracker</button>
+  <button class="nb" onclick="show('aq572',this);loadSiteAreaQty('572')">572 Areas</button>
+  <button class="nb" onclick="show('aqbas',this);loadSiteAreaQty('basatin')">Basatin Areas</button>
+  <button class="nb" onclick="show('aqinn',this);loadSiteAreaQty('innovo')">Innovo Areas</button>
   <button class="nb" onclick="show('register',this);loadSiteRegister()">Site Register</button>
+  <button class="nb" onclick="show('monthreg',this);loadMonthlyRegister()">Monthly Register</button>
   <button class="nb" onclick="show(&#39;inp&#39;,this)">Daily Input</button>
 </nav>
 
@@ -2140,8 +2144,52 @@ tr:hover td{background:var(--surface2)}
     </div>
     <button class="btn gld" onclick="loadSiteRegister()">Load Register</button>
     <button class="btn" onclick="exportRegister()" style="border-color:var(--green);color:var(--green)">⬇ Export CSV</button>
+    <button class="btn" onclick="generateRegisterWA()" style="border-color:var(--amber);color:var(--amber)">📋 WhatsApp Report</button>
   </div>
   <div id="regContent"><div class="loading"><div class="spinner"></div>Loading register...</div></div>
+  <div id="regWAReport" style="display:none;margin-top:14px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="chd">WhatsApp Site Register Report</div>
+        <button class="btn gld" onclick="copyRegWA()" id="copyRegBtn">📋 Copy</button>
+      </div>
+      <pre id="regWAText" style="font-size:11px;font-family:'DM Mono',monospace;white-space:pre-wrap;color:var(--ink2);background:var(--bg2);padding:14px;border-radius:var(--border-radius-md);max-height:600px;overflow-y:auto;line-height:1.7"></pre>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════ MONTHLY REGISTER ══════════ -->
+<div id="monthreg" class="sec">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+    <button class="btn gld" onclick="loadMonthlyRegister()">↺ Refresh</button>
+    <button class="btn" onclick="generateMonthlyWA()" style="border-color:var(--amber);color:var(--amber)">📋 WhatsApp Report</button>
+    <button class="btn" onclick="exportMonthlyCSV()" style="border-color:var(--green);color:var(--green)">⬇ Export CSV</button>
+  </div>
+  <div id="monthRegContent"><div class="loading"><div class="spinner"></div>Loading monthly data...</div></div>
+  <div id="monthRegWA" style="display:none;margin-top:14px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="chd">Monthly WhatsApp Report</div>
+        <button class="btn gld" onclick="copyMonthWA()" id="copyMonthBtn">📋 Copy</button>
+      </div>
+      <pre id="monthWAText" style="font-size:11px;font-family:'DM Mono',monospace;white-space:pre-wrap;color:var(--ink2);background:var(--bg2);padding:14px;border-radius:var(--border-radius-md);max-height:600px;overflow-y:auto;line-height:1.7"></pre>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════ SITE AREA QTY: 572 ══════════ -->
+<div id="aq572" class="sec">
+  <div id="aq572content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+</div>
+<!-- ══════════ SITE AREA QTY: BASATIN ══════════ -->
+<div id="aqbas" class="sec">
+  <div id="aqbascontent"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+</div>
+<!-- ══════════ SITE AREA QTY: INNOVO ══════════ -->
+<div id="aqinn" class="sec">
+  <div id="aqinncontent"><div class="loading"><div class="spinner"></div>Loading...</div></div>
 </div>
 
 <!-- ══════════ AREA TRACKER ══════════ -->
@@ -3335,7 +3383,10 @@ async function parseAndSave(){
           work_date:workDate,
           worker_names:(it.worker_names||'').substring(0,100),
           site:it.site||'572',
-          work_area:(it.work_area||'Unknown').substring(0,100),
+          work_area:(function(raw){
+            if(!raw||raw==='Unknown'||/^area\s*name$/i.test(raw)) return raw||'Unknown';
+            return raw.replace(/[\s_]+/g,' ').trim().replace(/\w\S*/g,function(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();}).replace(/[.,;:!?]+$/,'').trim()||'Unknown';
+          })(it.work_area||'Unknown').substring(0,100),
           site_number:(it.site_number||'').substring(0,20),
           work_type:(it.work_type||'').substring(0,100),
           quantity:parseFloat(it.quantity)||0,
@@ -4664,7 +4715,7 @@ async function loadProjectROI(){
     items.forEach(function(it){
       const p = proj[it.site];
       if(!p) return;
-      const inc = parseFloat(it.income||0);
+      // income not used — qty tracking only
       p.income = r2(p.income + inc);
       p.days.add(it.work_date);
 
@@ -6192,6 +6243,632 @@ async function parseAndSaveMulti(){
 
   // Call the existing parseAndSave
   await parseAndSave();
+}
+
+
+// ══════════ SITE REGISTER WHATSAPP REPORT ══════════
+function generateRegisterWA(){
+  if(!window._regData){
+    alert('Load the register first by clicking Load Register');
+    return;
+  }
+
+  const {dates, byDate, cumulative, openingBal, month} = window._regData;
+  if(!dates.length){
+    alert('No data for this month yet');
+    return;
+  }
+
+  const MONTH_NAMES = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
+                       '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+  const mn = month.split('-')[1];
+  const yr = month.split('-')[0];
+  const monthLabel = (MONTH_NAMES[mn]||mn) + ' ' + yr;
+
+  // Last date with data
+  const lastDt = dates[dates.length-1];
+  const d2 = new Date(lastDt);
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dateLabel = d2.getDate() + ' ' + (MONTH_NAMES[String(d2.getMonth()+1).padStart(2,'0')]||'') + ' ' + yr;
+
+  // Previous = THIS MONTH's work up to yesterday (not all-time cumulative)
+  const prevDt = dates.length > 1 ? dates[dates.length-2] : null;
+  const prevCumRaw = prevDt ? cumulative[prevDt] : openingBal;
+  const todayCumRaw = cumulative[lastDt];
+  const todayWork = byDate[lastDt] || {};
+
+  // Subtract opening balance to get month-only quantities
+  function monthOnly(cumRaw){
+    const result = {};
+    REG_SITES.forEach(function(site){
+      result[site.key] = {};
+      site.items.forEach(function(item){
+        const total = ((cumRaw||{})[site.key]||{})[item]||0;
+        const opening = ((openingBal||{})[site.key]||{})[item]||0;
+        result[site.key][item] = Math.max(0, parseFloat((total - opening).toFixed(2)));
+      });
+    });
+    return result;
+  }
+  const prevCum = monthOnly(prevCumRaw);
+  const todayCum = monthOnly(todayCumRaw);
+
+  // Format number — show — for zero
+  function fmt(val){
+    if(!val || val === 0) return '—';
+    return val % 1 === 0 ? val.toFixed(0) : val.toFixed(1);
+  }
+
+  // Pad string to fixed width
+  function pad(str, len, right){
+    str = String(str);
+    if(right) return str.padStart(len, ' ');
+    return str.padEnd(len, ' ');
+  }
+
+  const siteEmoji = {'572':'🏗','basatin':'🟡','innovo':'🔵'};
+  const siteLabel = {'572':'Hilalco 572','basatin':'Basatin','innovo':'Innovo'};
+  const siteOrder = ['572','basatin','innovo'];
+
+  let report = '';
+  report += `📊 *SITE REGISTER — ${dateLabel}*\n`;
+  report += `📅 ${monthLabel} | Month-to-date quantities\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+  siteOrder.forEach(function(sKey){
+    const site = REG_SITES.find(function(s){ return s.key === sKey; });
+    if(!site) return;
+
+    // Check if this site has any data at all this month
+    const hasData = site.items.some(function(item){
+      const todayVal = (todayWork[sKey]||{})[item]||0;
+      const totalVal = (todayCum[sKey]||{})[item]||0;
+      return totalVal > 0 || todayVal > 0;
+    });
+
+    report += `\n${siteEmoji[sKey]} *${siteLabel[sKey]}*\n`;
+    report += `─────────────────────────\n`;
+
+    // Column headers
+    report += pad('Work Type', 16) + pad('Prev', 8, true) + pad('Today', 8, true) + pad('Total', 8, true) + '\n';
+    report += '─'.repeat(40) + '\n';
+
+    let hasSiteWork = false;
+    site.items.forEach(function(item){
+      const prevVal  = ((prevCum||{})[sKey]||{})[item]||0;
+      const todayVal = (todayWork[sKey]||{})[item]||0;
+      const totalVal = (todayCum[sKey]||{})[item]||0;
+
+      // Only show rows that have some quantity
+      if(prevVal === 0 && todayVal === 0 && totalVal === 0) return;
+
+      hasSiteWork = true;
+      const prevStr  = fmt(prevVal);
+      const todayStr = todayVal > 0 ? '*' + fmt(todayVal) + '*' : '—';
+      const totalStr = fmt(totalVal);
+
+      // Shorten item name
+      const shortName = item.replace('Fixing','Fix').replace('Laying','Lay').replace('Cutpiece','Cut').replace('Maintenance','Maint').replace('Haunching','Haunch');
+      report += pad(shortName, 16) + pad(prevStr, 8, true) + pad(todayStr, 9, true) + pad(totalStr, 8, true) + '\n';
+    });
+
+    if(!hasSiteWork){
+      report += '   No work recorded yet\n';
+    }
+  });
+
+  report += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `_Today's quantities in *bold*_\n`;
+  report += `_Al Fakhira Gen Cont LLC_`;
+
+  document.getElementById('regWAText').textContent = report;
+  document.getElementById('regWAReport').style.display = 'block';
+  window._regWAText = report;
+
+  // Scroll to it
+  document.getElementById('regWAReport').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function copyRegWA(){
+  const text = window._regWAText || document.getElementById('regWAText').textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    const btn = document.getElementById('copyRegBtn');
+    if(btn){ btn.textContent = '✅ Copied!'; btn.style.background = 'var(--green)'; btn.style.color = '#fff'; }
+    setTimeout(function(){
+      if(btn){ btn.textContent = '📋 Copy'; btn.style.background = ''; btn.style.color = ''; }
+    }, 2500);
+  }).catch(function(){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('Copied!');
+  });
+}
+
+
+// ══════════ MONTHLY REGISTER ══════════
+const MONTH_NAMES_MAP = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
+                         '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+
+async function loadMonthlyRegister(){
+  const el = document.getElementById('monthRegContent');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading all monthly data...</div>';
+
+  try {
+    // Fetch ALL work_items ever
+    const items = await sbGet('work_items',
+      '?select=work_date,site,work_type,quantity,income&order=work_date.asc');
+
+    if(!items.length){
+      el.innerHTML = '<div class="alert warn"><div>No work items found.</div></div>';
+      return;
+    }
+
+    // Get all months
+    const months = [...new Set(items.map(it => it.work_date.substring(0,7)))].sort();
+
+    // Aggregate per month per site per item
+    // monthData[month][siteKey][itemKey] = {qty, income}
+    const monthData = {};
+    months.forEach(function(m){ monthData[m] = {}; });
+
+    items.forEach(function(it){
+      const m = it.work_date.substring(0,7);
+      const s = it.site;
+      const item = matchRegItem(it.work_type, []);
+      if(!item) return;
+      const qty = parseFloat(it.quantity||0);
+      const inc = parseFloat(it.income||0);
+      if(!monthData[m][s]) monthData[m][s] = {};
+      if(!monthData[m][s][item]) monthData[m][s][item] = {qty:0, income:0};
+      monthData[m][s][item].qty   = parseFloat((monthData[m][s][item].qty   + qty).toFixed(2));
+      monthData[m][s][item].income= parseFloat((monthData[m][s][item].income + inc).toFixed(2));
+    });
+
+    // Build cumulative per month
+    const cumByMonth = {}; // cumByMonth[month][site][item] = running total
+    const running = {};
+    REG_SITES.forEach(function(site){
+      running[site.key] = {};
+      site.items.forEach(function(item){ running[site.key][item] = 0; });
+    });
+
+    months.forEach(function(m){
+      REG_SITES.forEach(function(site){
+        site.items.forEach(function(item){
+          const val = ((monthData[m]||{})[site.key]||{})[item];
+          if(val) running[site.key][item] = parseFloat((running[site.key][item] + val.qty).toFixed(2));
+        });
+      });
+      cumByMonth[m] = JSON.parse(JSON.stringify(running));
+    });
+
+    // Store for WA/CSV
+    window._monthRegData = {months, monthData, cumByMonth};
+
+    // ── RENDER TABLE ──
+    const siteColor = {'572':'var(--teal)','innovo':'var(--purple)','basatin':'var(--amber)'};
+    const siteLabel = {'572':'Hilalco','innovo':'Innovo','basatin':'Basatin'};
+
+    let html = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:.5px solid var(--border2);border-radius:var(--border-radius-md)">';
+    html += '<div style="font-size:11px;color:var(--ink3);padding:8px 10px;background:var(--bg2);border-bottom:.5px solid var(--border2)">← Scroll right to see all sites →</div>';
+    html += '<table style="border-collapse:collapse;font-size:11px;width:max-content;min-width:100%">';
+
+    // Header row 1: sites
+    html += '<thead><tr>';
+    html += '<th rowspan="2" style="position:sticky;left:0;z-index:10;background:var(--bg1);padding:8px 10px;text-align:left;border:.5px solid var(--border2);min-width:80px">Month</th>';
+    REG_SITES.forEach(function(site){
+      html += `<th colspan="${site.items.length*2}" style="background:rgba(0,0,0,.04);color:${siteColor[site.key]};padding:7px;border:.5px solid var(--border2);font-weight:700;text-align:center">${site.label}</th>`;
+    });
+    html += '</tr>';
+
+    // Header row 2: items
+    html += '<tr>';
+    REG_SITES.forEach(function(site){
+      site.items.forEach(function(item){
+        const short = item.replace('Fixing','Fix').replace(' Laying',' Lay').replace('Cutpiece','Cut').replace('Maintenance','Mnt').replace('Haunching','Haunch').replace('Border','Bdr');
+        html += `<th style="padding:5px 6px;border:.5px solid var(--border2);font-size:10px;color:${siteColor[site.key]};text-align:center;white-space:nowrap;min-width:80px">${short}</th>`;
+      });
+    });
+    html += '</tr></thead><tbody>';
+
+    // Data rows
+    let prevCumSnapshot = null;
+    months.forEach(function(m, idx){
+      const [yr, mn] = m.split('-');
+      const monthLabel = (MONTH_NAMES_MAP[mn]||mn) + ' ' + yr;
+      const isCurrentMonth = m === new Date().toISOString().substring(0,7);
+      const bg = isCurrentMonth ? 'rgba(42,157,143,.06)' : '';
+
+      html += `<tr style="border-bottom:.5px solid var(--border2);background:${bg}">`;
+      html += `<td style="position:sticky;left:0;z-index:5;background:${bg||'var(--bg1)'};padding:6px 10px;font-weight:${isCurrentMonth?'700':'500'};white-space:nowrap;border:.5px solid var(--border2)">${monthLabel}${isCurrentMonth?' ⬅':''}</td>`;
+
+      REG_SITES.forEach(function(site){
+        site.items.forEach(function(item){
+          const mo  = ((monthData[m]||{})[site.key]||{})[item];
+          const cum = (cumByMonth[m][site.key]||{})[item]||0;
+          const moVal  = mo ? mo.qty : 0;
+          const moInc  = mo ? mo.income : 0;
+          const hasWork = moVal > 0;
+
+          html += `<td style="text-align:right;padding:5px 6px;border:.5px solid var(--border2)">`;
+          if(hasWork){
+            html += `<div style="font-size:12px;font-weight:600;color:var(--green)">${moVal.toFixed(1)}</div>`;
+            html += `<div style="font-size:9px;color:var(--ink4)">∑${cum.toFixed(0)}</div>`;
+          } else {
+            html += `<span style="font-size:11px;color:var(--ink4)">—</span>`;
+            if(cum > 0) html += `<div style="font-size:9px;color:var(--ink4)">∑${cum.toFixed(0)}</div>`;
+          }
+          html += '</td>';
+        });
+      });
+      html += '</tr>';
+    });
+
+    // Total row
+    const lastM = months[months.length-1];
+    const grandCum = cumByMonth[lastM];
+    html += '<tr style="background:var(--ink);color:#f5f3ee;font-weight:700">';
+    html += '<td style="position:sticky;left:0;z-index:5;background:var(--ink);color:#f5f3ee;padding:7px 10px;border:.5px solid var(--border2)">GRAND TOTAL</td>';
+    REG_SITES.forEach(function(site){
+      site.items.forEach(function(item){
+        const val = (grandCum[site.key]||{})[item]||0;
+        html += `<td style="text-align:right;padding:6px;border:.5px solid var(--border2);font-size:12px;color:${val>0?'#6ecf8a':'rgba(255,255,255,.3)'}">${val>0?val.toFixed(1):'—'}</td>`;
+      });
+    });
+    html += '</tr>';
+    html += '</tbody></table></div>';
+
+    el.innerHTML = html;
+
+  } catch(e){
+    el.innerHTML = `<div class="alert danger"><div>Error: ${e.message}</div></div>`;
+    console.error('Monthly register error:', e);
+  }
+}
+
+function generateMonthlyWA(){
+  if(!window._monthRegData){
+    alert('Load the Monthly Register first');
+    return;
+  }
+  const {months, monthData, cumByMonth} = window._monthRegData;
+
+  const siteEmoji  = {'572':'🏗','basatin':'🟡','innovo':'🔵'};
+  const siteLabels = {'572':'Hilalco 572','basatin':'Basatin','innovo':'Innovo'};
+  const siteOrder  = ['572','basatin','innovo'];
+
+  function fmt(val){ return !val||val===0?'—':val%1===0?val.toFixed(0):val.toFixed(1); }
+  function pad(s, n, r){ s=String(s); return r?s.padStart(n,' '):s.padEnd(n,' '); }
+
+  let report = '';
+  report += `📊 *MONTHLY PRODUCTION REGISTER*\n`;
+  report += `🏢 Al Fakhira Gen Cont LLC\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+
+  siteOrder.forEach(function(sKey){
+    const site = REG_SITES.find(function(s){ return s.key===sKey; });
+    if(!site) return;
+
+    // Check if this site has any data at all
+    const hasAnySiteData = months.some(function(m){
+      return site.items.some(function(item){
+        return ((monthData[m]||{})[sKey]||{})[item]?.qty > 0;
+      });
+    });
+    if(!hasAnySiteData) return;
+
+    report += `\n${siteEmoji[sKey]} *${siteLabels[sKey]}*\n`;
+
+    // For each work type that has data across any month
+    site.items.forEach(function(item){
+      const hasItemData = months.some(function(m){
+        return ((monthData[m]||{})[sKey]||{})[item]?.qty > 0;
+      });
+      if(!hasItemData) return;
+
+      const shortItem = item.replace('Fixing','Fix').replace('Laying','Lay').replace('Cutpiece','Cut');
+      report += `\n  📌 *${shortItem}*\n`;
+      report += `  ${pad('Month',8)} ${pad('Qty LM',9,true)} ${pad('Income',11,true)} ${pad('Cumul.',9,true)}\n`;
+      report += `  ${'─'.repeat(38)}\n`;
+
+      let runTotal = 0;
+      months.forEach(function(m){
+        const mo = ((monthData[m]||{})[sKey]||{})[item];
+        const moQty = mo ? mo.qty : 0;
+        const moInc = mo ? mo.income : 0;
+        runTotal = parseFloat((runTotal + moQty).toFixed(2));
+        if(moQty === 0 && runTotal === 0) return; // skip empty months before any work
+        const [yr, mn] = m.split('-');
+        const ml = (MONTH_NAMES_MAP[mn]||mn);
+        const qtyStr = moQty > 0 ? '*'+fmt(moQty)+'*' : '—';
+        const incStr = moInc > 0 ? 'AED '+moInc.toFixed(0) : '—';
+        const cumStr = runTotal.toFixed(0);
+        report += `  ${pad(ml,8)} ${pad(qtyStr,9,true)} ${pad(incStr,11,true)} ${pad(cumStr,9,true)}\n`;
+      });
+      report += `  ${'─'.repeat(38)}\n`;
+      report += `  ${pad('TOTAL',8)} ${pad(fmt(runTotal)+' LM',9,true)}\n`;
+    });
+    report += '\n';
+  });
+
+  report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `_Monthly qty in *bold* | Cumulative shown_\n`;
+  report += `_This is tracked quantity — to be compared with QS invoice_\n`;
+  report += `_Al Fakhira Gen Cont LLC_`;
+
+  document.getElementById('monthWAText').textContent = report;
+  document.getElementById('monthRegWA').style.display = 'block';
+  window._monthWAText = report;
+  document.getElementById('monthRegWA').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function copyMonthWA(){
+  const text = window._monthWAText || document.getElementById('monthWAText').textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    const btn = document.getElementById('copyMonthBtn');
+    if(btn){ btn.textContent='✅ Copied!'; btn.style.background='var(--green)'; btn.style.color='#fff'; }
+    setTimeout(function(){
+      if(btn){ btn.textContent='📋 Copy'; btn.style.background=''; btn.style.color=''; }
+    }, 2500);
+  }).catch(function(){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('Copied!');
+  });
+}
+
+function exportMonthlyCSV(){
+  if(!window._monthRegData){ alert('Load the register first'); return; }
+  const {months, monthData, cumByMonth} = window._monthRegData;
+  let csv = 'Month';
+  REG_SITES.forEach(function(site){
+    site.items.forEach(function(item){
+      csv += `,${site.label} - ${item} (Monthly),${site.label} - ${item} (Cumulative)`;
+    });
+  });
+  csv += '\n';
+  months.forEach(function(m){
+    const [yr, mn] = m.split('-');
+    csv += `${(MONTH_NAMES_MAP[mn]||mn)} ${yr}`;
+    REG_SITES.forEach(function(site){
+      site.items.forEach(function(item){
+        const mo  = ((monthData[m]||{})[site.key]||{})[item];
+        const cum = (cumByMonth[m][site.key]||{})[item]||0;
+        csv += `,${mo?mo.qty.toFixed(1):''},${cum.toFixed(1)}`;
+      });
+    });
+    csv += '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'Al_Fakhira_Monthly_Register.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+// ══════════ SITE AREA QUANTITY TRACKER ══════════
+const _siteAreaCache = {};
+
+async function loadSiteAreaQty(site){
+  const contentId = 'aq' + (site==='572'?'572':site==='basatin'?'bas':'inn') + 'content';
+  const el = document.getElementById(contentId);
+  if(!el) return;
+
+  if(_siteAreaCache[site]){
+    el.innerHTML = _siteAreaCache[site];
+    return;
+  }
+
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading area data...</div>';
+
+  try {
+    // Fetch work_items from June 2026 onwards only — area tracking starts June 2026
+    const items = await sbGet('work_items',
+      `?site=eq.${site}&work_date=gte.2026-06-01&select=work_date,work_area,work_type,quantity,unit,worker_names&order=work_date.asc,work_area.asc`);
+
+    if(!items.length){
+      el.innerHTML = '<div class="alert warn"><div>No work items found for this site yet.</div></div>';
+      return;
+    }
+
+    const siteLabel = {'572':'Hilalco 572','innovo':'Innovo','basatin':'Basatin'};
+    const siteColor = {'572':'var(--teal)','innovo':'var(--purple)','basatin':'var(--amber)'};
+    const siteColorHex = {'572':'#2a9d8f','innovo':'#6a4fcf','basatin':'#e07b00'};
+
+    // Normalize work type
+    function normWT(wt){
+      const wl = (wt||'').toLowerCase();
+      if(/grutt|grout/i.test(wl)) return 'Grouting';
+      if(/blinding/i.test(wl)) return 'Blinding';
+      if(/haunching/i.test(wl)) return 'Haunching';
+      if(/border/i.test(wl)) return 'Tile Border';
+      if(/cutpece|cutpiece/i.test(wl)) return 'Cutpiece';
+      if(/tile|taile/i.test(wl)) return 'Tile Laying';
+      if(/kerb|rool|roll/i.test(wl)) return 'Kerb Fixing';
+      return wt||'Other';
+    }
+
+    // Normalize area name — collapse spacing/case differences so Bilal's typos don't split areas
+    function normalizeArea(raw){
+      if(!raw) return 'Unknown';
+      let s = raw.trim();
+      // Remove leading ⚠ flag marker
+      s = s.replace(/^⚠\s*/,'');
+      // Collapse multiple spaces/underscores to single space
+      s = s.replace(/[\s_]+/g,' ').trim();
+      // Title Case
+      s = s.replace(/\w\S*/g, function(w){ return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase(); });
+      // Remove trailing punctuation
+      s = s.replace(/[.,;:!?]+$/, '').trim();
+      return s || 'Unknown';
+    }
+
+    // Build structure: area → { dates: {date: {wt: qty}}, totals: {wt: qty}, workers }
+    const areas = {};
+    const allWorkTypes = new Set();
+    const allDates = new Set();
+    const flaggedAreas = new Set();
+
+    items.forEach(function(it){
+      const rawArea = (it.work_area||'Unknown').trim();
+      const isFlag = !rawArea || rawArea==='Unknown' || /^⚠|^area\s*name$/i.test(rawArea);
+      const area = isFlag ? rawArea : normalizeArea(rawArea);
+      if(isFlag) flaggedAreas.add(area);
+      const wt = normWT(it.work_type);
+      const qty = parseFloat(it.quantity||0);
+      const inc = parseFloat(it.income||0);
+      const dt = it.work_date;
+      allWorkTypes.add(wt);
+      allDates.add(dt);
+
+      if(!areas[area]) areas[area] = {dates:{}, totals:{}, workers:new Set(), isFlagged:isFlag};
+      if(!areas[area].dates[dt]) areas[area].dates[dt] = {};
+      areas[area].dates[dt][wt] = parseFloat(((areas[area].dates[dt][wt]||0)+qty).toFixed(2));
+      areas[area].totals[wt] = parseFloat(((areas[area].totals[wt]||0)+qty).toFixed(2));
+      // income not tracked — quantity only from June 2026
+      (it.worker_names||'').split(/[+,]/).forEach(function(n){ const nm=n.trim(); if(nm&&nm.length>1) areas[area].workers.add(nm); });
+    });
+
+    const sortedAreas = Object.keys(areas).sort(function(a,b){
+      // Flagged areas last, then by total qty desc
+      if(areas[a].isFlagged && !areas[b].isFlagged) return 1;
+      if(!areas[a].isFlagged && areas[b].isFlagged) return -1;
+      const qtyA = Object.values(areas[a].totals).reduce(function(s,v){return s+v;},0);
+      const qtyB = Object.values(areas[b].totals).reduce(function(s,v){return s+v;},0);
+      return qtyB - qtyA;
+    });
+
+    const sortedDates = [...allDates].sort();
+    const sortedWTs = [...allWorkTypes].sort();
+    const MONTH_NAMES = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec'};
+
+    // ── FLAGS ──
+    let flagHtml = '';
+    if(flaggedAreas.size > 0){
+      flagHtml = `<div class="alert warn" style="margin-bottom:12px"><div>⚠ <strong>${flaggedAreas.size} area(s) with missing names</strong> — check with Bilal to fill in: ${[...flaggedAreas].join(', ')}</div></div>`;
+    }
+
+    // ── SUMMARY CARDS ──
+    let summaryHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px">';
+    sortedAreas.filter(function(a){ return !areas[a].isFlagged; }).forEach(function(area){
+      const ad = areas[area];
+      const topWT = Object.entries(ad.totals).sort(function(a,b){return b[1]-a[1];})[0];
+      const totalQty = Object.values(ad.totals).reduce(function(s,v){return s+v;},0);
+      summaryHtml += `<div style="background:var(--bg2);border:.5px solid var(--border2);border-left:3px solid ${siteColorHex[site]};border-radius:var(--border-radius-md);padding:10px 12px">`;
+      summaryHtml += `<div style="font-size:12px;font-weight:600;margin-bottom:4px">${area}</div>`;
+      summaryHtml += `<div style="font-size:15px;font-weight:700;color:${siteColor[site]}">${totalQty.toFixed(1)} LM</div>`;
+      if(topWT) summaryHtml += `<div style="font-size:10px;color:var(--ink3);margin-top:2px">${topWT[0]}: ${topWT[1].toFixed(1)} LM</div>`;
+      summaryHtml += `<div style="font-size:10px;color:var(--ink4)">${ad.workers.size} workers · ${Object.keys(ad.dates).length} days</div>`;
+      summaryHtml += '</div>';
+    });
+    summaryHtml += '</div>';
+
+    // ── AREA × DATE TABLE (dates as columns, areas as rows, sub-rows per work type) ──
+    // Group dates by month for header
+    const datesByMonth = {};
+    sortedDates.forEach(function(dt){
+      const mk = dt.substring(0,7);
+      if(!datesByMonth[mk]) datesByMonth[mk] = [];
+      datesByMonth[mk].push(dt);
+    });
+    const sortedMonths = Object.keys(datesByMonth).sort();
+
+    let tableHtml = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:16px">';
+    tableHtml += '<table style="border-collapse:collapse;font-size:10px;width:max-content">';
+
+    // Header row 1: months
+    tableHtml += '<thead>';
+    tableHtml += '<tr>';
+    tableHtml += `<th rowspan="2" style="position:sticky;left:0;z-index:10;background:var(--bg1);padding:8px 10px;text-align:left;border:.5px solid var(--border2);min-width:140px;font-size:11px">Area / Work Type</th>`;
+    tableHtml += `<th rowspan="2" style="position:sticky;left:140px;z-index:10;background:var(--bg1);padding:8px 6px;border:.5px solid var(--border2);min-width:70px;font-size:10px;color:var(--ink3)">TOTAL</th>`;
+    sortedMonths.forEach(function(mk){
+      const [yr, mn] = mk.split('-');
+      const label = (MONTH_NAMES[mn]||mn)+' '+yr;
+      tableHtml += `<th colspan="${datesByMonth[mk].length}" style="background:${siteColorHex[site]}18;color:${siteColor[site]};padding:6px;border:.5px solid var(--border2);font-weight:600;text-align:center">${label}</th>`;
+    });
+    tableHtml += '</tr>';
+
+    // Header row 2: dates
+    tableHtml += '<tr>';
+    sortedDates.forEach(function(dt){
+      const d2 = new Date(dt);
+      const dayNum = d2.getDate();
+      const dayName = ['Su','Mo','Tu','We','Th','Fr','Sa'][d2.getDay()];
+      const isWeekend = d2.getDay()===5||d2.getDay()===6;
+      tableHtml += `<th style="padding:4px 3px;border:.5px solid var(--border2);text-align:center;min-width:36px;${isWeekend?'color:var(--amber)':'color:var(--ink3)'}">${dayNum}<br><span style="font-size:8px">${dayName}</span></th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+
+    // Data rows: one area block per area, then work types within
+    sortedAreas.forEach(function(area){
+      const ad = areas[area];
+      const isFlag = ad.isFlagged;
+      const areaColor = isFlag ? 'var(--amber)' : siteColorHex[site];
+      // Area header row
+      tableHtml += `<tr style="background:${isFlag?'rgba(244,162,97,.08)':siteColorHex[site]+'12'};border-bottom:.5px solid var(--border2)">`;
+      const areaTotalQty = Object.values(ad.totals).reduce(function(s,v){return s+v;},0);
+      tableHtml += `<td colspan="2" style="position:sticky;left:0;z-index:5;background:${isFlag?'rgba(244,162,97,.12)':siteColorHex[site]+'20'};padding:6px 10px;font-weight:700;font-size:11px;color:${areaColor};border:.5px solid var(--border2)">${isFlag?'⚠ ':''}"${area}" — ${areaTotalQty.toFixed(1)} LM · ${ad.workers.size}P</td>`;
+      sortedDates.forEach(function(dt){
+        // Show total for this area on this date
+        const dayTotal = Object.values(ad.dates[dt]||{}).reduce(function(s,v){return s+v;},0);
+        tableHtml += `<td style="text-align:center;padding:4px 3px;border:.5px solid var(--border2);font-size:10px;font-weight:600;color:${dayTotal>0?'var(--green)':'var(--ink4)'}">${dayTotal>0?dayTotal.toFixed(1):'—'}</td>`;
+      });
+      tableHtml += '</tr>';
+
+      // Work type sub-rows
+      sortedWTs.forEach(function(wt){
+        // Only show if this area has this work type
+        const hasWT = sortedDates.some(function(dt){ return (ad.dates[dt]||{})[wt]>0; });
+        if(!hasWT) return;
+
+        const wtTotal = ad.totals[wt]||0;
+        tableHtml += `<tr style="border-bottom:.5px solid var(--border3)">`;
+        tableHtml += `<td style="position:sticky;left:0;z-index:5;background:var(--bg1);padding:4px 10px 4px 22px;font-size:10px;color:var(--ink2);border:.5px solid var(--border2)">${wt}</td>`;
+        tableHtml += `<td style="position:sticky;left:140px;z-index:5;background:var(--bg1);text-align:right;padding:4px 6px;font-size:10px;font-weight:600;border:.5px solid var(--border2)">${wtTotal.toFixed(1)}</td>`;
+        sortedDates.forEach(function(dt){
+          const val = (ad.dates[dt]||{})[wt]||0;
+          tableHtml += `<td style="text-align:center;padding:4px 3px;border:.5px solid var(--border3);font-size:10px;color:${val>0?'var(--ink1)':'var(--ink4)'}">${val>0?val.toFixed(1):'·'}</td>`;
+        });
+        tableHtml += '</tr>';
+      });
+    });
+
+    tableHtml += '</tbody></table></div>';
+
+    const html = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:300;color:${siteColor[site]}">${siteLabel[site]} — Area Quantity Tracker</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px">${sortedAreas.filter(a=>!areas[a].isFlagged).length} named areas · ${sortedDates.length} days · Jun 2026 onwards · scroll right →</div>
+        </div>
+      </div>
+      ${flagHtml}
+      <div class="card" style="margin-bottom:14px">
+        <div class="chd" style="color:${siteColor[site]}">Area Summary</div>
+        ${summaryHtml}
+      </div>
+      <div class="card">
+        <div class="chd" style="color:${siteColor[site]}">Date × Area × Work Type</div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:8px">Rows = areas · columns = dates · numbers = LM done that day per work type</div>
+        ${tableHtml}
+      </div>`;
+
+    _siteAreaCache[site] = html;
+    el.innerHTML = html;
+
+  } catch(e){
+    el.innerHTML = `<div class="alert danger"><div>Error: ${e.message}</div></div>`;
+    console.error('Site area qty error:', e);
+  }
 }
 
 </script>
