@@ -2809,10 +2809,10 @@ async function loadDayDetail(dateStr){
               trows+='<td style="padding:6px 8px">';
               trows+='<div style="font-size:12px;font-weight:500;color:'+(isTile?'var(--purple)':'var(--ink1)')+'">'+wt+'</div>';
               trows+='<div style="font-size:10px;color:var(--ink3)">'+wCount+'P</div></td>';
-              trows+='<td style="text-align:right;padding:6px 8px;font-size:12px;font-weight:600">'+qty.toFixed(1)+' <span style="font-size:10px;font-weight:400;color:var(--ink3)">'+unit+'</span></td>';
-              trows+='<td style="text-align:right;padding:6px 8px;font-size:12px;color:var(--ink3)">'+( wtCost>0?'AED '+wtCost.toFixed(0):'—')+'</td>';
-              trows+='<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600;color:'+(inc>0?'var(--green)':'var(--ink3)')+'">'+( inc>0?'AED '+inc.toFixed(0):'—')+'</td>';
-              trows+='<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:700;color:'+diffColor+'">'+(diff>=0?'+':'')+'AED '+Math.abs(diff).toFixed(0)+'</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600">'+qty.toFixed(1)+' <span style="font-size:10px;font-weight:400;color:var(--ink3)">'+unit+'</span></td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:13px;font-weight:600;color:var(--ink2)">'+( wtCost>0?'AED '+wtCost.toFixed(0):'—')+'</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:14px;font-weight:700;color:'+(inc>0?'var(--green)':'var(--ink3)')+'">'+( inc>0?'AED '+inc.toFixed(0):'—')+'</td>';
+              trows+='<td style="text-align:right;padding:6px 8px;font-size:14px;font-weight:700;color:'+diffColor+'">'+(diff>=0?'+':'')+'AED '+Math.abs(diff).toFixed(0)+'</td>';
               trows+='</tr>';
             }
           });
@@ -2876,7 +2876,7 @@ async function loadDayDetail(dateStr){
                 '<div style="font-size:24px;font-weight:700;color:#f4a261">AED ' + _baseOverhead.toFixed(0) + '</div>' +
                 '<div style="font-size:10px;opacity:.45">fixed daily overhead</div></div>' +
                 '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">TOTAL COST</div>' +
-                '<div style="font-size:24px;font-weight:700;color:#f08080">AED ' + f(totalCostFull) + '</div>' +
+                '<div style="font-size:24px;font-weight:700;color:#f08080">AED ' + f(parseFloat(d.total_cost||0)) + '</div>' +
                 '<div style="font-size:10px;opacity:.45">all costs combined</div></div>' +
                 '<div><div style="font-size:10px;opacity:.55;margin-bottom:3px">NET P&L</div>' +
                 '<div style="font-size:28px;font-weight:700;color:' + (isPL?'#6ecf8a':'#f08080') + '">' + (isPL?'+':'') + 'AED ' + f(Math.abs(netPL)) + '</div>' +
@@ -2894,8 +2894,17 @@ async function loadDayDetail(dateStr){
                       '<div style="font-size:12px;font-weight:700;color:'+(net>=0?'#6ecf8a':'#f08080')+';margin-top:2px">'+(net>=0?'+':'')+'AED '+net+'</div></div>';
                   }
                   const cpp = parseFloat(d.total_cost||0)/(d.total_workers||1);
-                  const w572=workersBySite['572'].size||0, wInn=workersBySite['innovo'].size||0, wBas=workersBySite['basatin'].size||0;
-                  return sc('Hilalco 572',inc572,w572,cpp)+sc('Innovo',incInn,wInn,cpp)+sc('Basatin',incBas,wBas,cpp);
+                  // Count workers per site from work items
+                  const _wb572=new Set(), _wbInn=new Set(), _wbBas=new Set();
+                  (items||[]).forEach(function(it){
+                    const names=(it.worker_names||'').split(/[+,]/).map(n=>n.trim()).filter(n=>n&&n.length>1);
+                    names.forEach(function(n){
+                      if(it.site==='572') _wb572.add(n.toLowerCase());
+                      else if(it.site==='innovo') _wbInn.add(n.toLowerCase());
+                      else _wbBas.add(n.toLowerCase());
+                    });
+                  });
+                  return sc('Hilalco',inc572,_wb572.size||0,cpp)+sc('Innovo',incInn,_wbInn.size||0,cpp)+sc('Basatin',incBas,_wbBas.size||0,cpp);
                 })() +
               '</div>' +
             '</div>';
@@ -2951,8 +2960,12 @@ async function loadDayDetail(dateStr){
           <div class="plr tot"><span>Total Cost</span><span>AED ${f(d.total_cost)}</span></div>
           <div class="div"></div>
           <div class="plr tot ${ip?'gr':'rd'}"><span>NET ${ip?'PROFIT ✓':'LOSS ✗'}</span><span>${ip?'+':''}AED ${f(d.net_pl)}</span></div>
-          <div class="plr"><span style="color:var(--ink3)">Per person (${d.total_workers}p)</span><span style="color:var(--ink3)">${ip?'+':''}AED ${(parseFloat(d.net_pl)/d.total_workers).toFixed(2)}</span></div>
-          <div class="plr"><span style="color:var(--ink3)">Monthly projection ×26</span><span style="color:var(--ink3)">${ip?'+':''}AED ${(parseFloat(d.net_pl)*26).toFixed(0)}</span></div>
+          <div class="plr" style="margin-top:4px;padding:8px 10px;background:var(--bg2);border-radius:var(--border-radius-md)">
+            <span style="font-size:12px;font-weight:600;color:var(--ink2)">Per person breakdown (${d.total_workers}P on site)</span>
+          </div>
+          <div class="plr ind"><span style="color:var(--ink3)">Total cost per person</span><span style="font-size:13px;font-weight:600;color:var(--ink1)">AED ${(parseFloat(d.total_cost||0)/(d.total_workers||1)).toFixed(2)}</span></div>
+          <div class="plr ind"><span style="color:var(--ink3)">Net P&L per person</span><span style="font-size:13px;font-weight:600;color:${ip?'var(--green)':'var(--red)'}">${ip?'+':''}AED ${(parseFloat(d.net_pl)/(d.total_workers||1)).toFixed(2)}</span></div>
+          <div class="plr ind"><span style="color:var(--ink3)">Monthly projection ×26</span><span style="color:var(--ink3)">${ip?'+':''}AED ${(parseFloat(d.net_pl)*26).toFixed(0)}</span></div>
         </div>
       </div>
       ${d.absent_names?`<div class="alert warn" style="margin-top:14px"><div><strong>Absent:</strong> ${d.absent_names}</div></div>`:''}
