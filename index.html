@@ -1952,7 +1952,10 @@ tr:hover td{background:var(--surface2)}
 
   <!-- COASTER ALERT BANNER (Jan–Mar 2026) -->
   <div class="alert warn" style="margin-bottom:14px">
-    <div>⚠ <strong>Coaster overhead Jan–Mar 2026 (variable):</strong> AED 7,000/mo ÷ 26 = +AED 269.23/day · minus car fuel -AED 100.00 = <strong>net +AED 169.23/day</strong> added to vehicle overhead for those months. Apr 2026 onwards: coaster removed, bus running cost AED 100/day applies.</div>
+    <div>⚠ <strong>Coaster overhead:</strong><br>
+    • <strong>Jan–Mar 2026:</strong> AED 7,000/mo ÷ 26 = +AED 269.23 minus car fuel AED 100 = <strong>net +AED 169.23/day</strong><br>
+    • <strong>Apr–Jun 7 2026:</strong> No coaster · bus running cost AED 100/day applies<br>
+    • <strong>Jun 8 2026 onwards:</strong> New coaster AED 7,200/mo ÷ 26 = <strong>+AED 276.92/day</strong> added to vehicle overhead</div>
   </div>
 
   <!-- MAIN BREAKDOWN GRID -->
@@ -1992,10 +1995,13 @@ tr:hover td{background:var(--surface2)}
         <div class="plr ind"><span>Bus petrol + running costs (actual)</span><span>AED 100.00</span></div>
         <div class="div"></div>
         <div class="plr tot"><span>Vehicle overhead/day (Apr 2026+)</span><span>AED 307.31</span></div>
-        <div class="pls">Coaster Period — Jan to Mar 2026</div>
+        <div class="pls">Coaster Period 1 — Jan to Mar 2026</div>
         <div class="plr ind"><span>Coaster hire — AED 7,000/month ÷ 26</span><span>AED 269.23</span></div>
         <div class="plr ind"><span>Car fuel removed (coaster covered transport)</span><span style="color:var(--green)">−AED 100.00</span></div>
         <div class="plr ind"><span>Net coaster adjustment Jan–Mar 2026</span><span style="color:var(--amber)">+AED 169.23/day</span></div>
+        <div class="pls" style="margin-top:10px">Coaster Period 2 — Jun 8 2026 onwards</div>
+        <div class="plr ind"><span>New coaster hire — AED 7,200/month ÷ 26</span><span>AED 276.92</span></div>
+        <div class="plr ind"><span>Net coaster adjustment Jun 8+ 2026</span><span style="color:var(--amber)">+AED 276.92/day</span></div>
         <div class="plr tot rd"><span>Vehicle overhead/day (Jan–Mar 2026)</span><span>AED 476.54</span></div>
       </div>
 
@@ -2041,6 +2047,10 @@ tr:hover td{background:var(--surface2)}
         <div class="pls">Jan–Mar 2026 (+ coaster, no bus fuel)</div>
         <div class="plr ind"><span>Base overhead</span><span>AED 1,101.36</span></div>
         <div class="plr ind"><span>Coaster net adjustment</span><span style="color:var(--amber)">+AED 169.23</span></div>
+      <div class="pls" style="margin-top:8px">JUN 8 2026 ONWARDS (+ NEW COASTER)</div>
+      <div class="plr ind"><span>Base overhead</span><span>AED 1,101.36</span></div>
+      <div class="plr ind"><span>New coaster (AED 7,200/mo ÷ 26)</span><span style="color:var(--amber)">+AED 276.92</span></div>
+      <div class="plr" style="font-weight:700"><span>Total overhead/day (Jun 8+)</span><span style="color:var(--amber)">AED 1,378.28</span></div>
         <div class="plr tot rd"><span>Total overhead/day (Jan–Mar 2026)</span><span>AED 1,270.59</span></div>
 
         <div class="pls">Mar 8 – Apr 30 2026 (Madassar on leave)</div>
@@ -2677,13 +2687,15 @@ async function loadDayDetail(dateStr){
     const pb = tg>0?((parseFloat(d.income_basatin)/tg)*100).toFixed(1):0;
 
     // Recompute exact base overhead for this date (mirrors parser logic)
-    const _hasCoaster = dateStr >= '2026-01-01' && dateStr <= '2026-03-31';
-    const _coasterNet = _hasCoaster ? 169.23 : 0;
+    const _hasCoaster = (dateStr >= '2026-01-01' && dateStr <= '2026-03-31');
+    const _hasCoaster2 = dateStr >= '2026-06-08'; // New coaster from 8 Jun 2026
+    const _coasterNet = _hasCoaster ? 169.23 : (_hasCoaster2 ? 276.92 : 0);
     const _madassarLeave = dateStr >= '2026-03-08' && dateStr <= '2026-04-30';
     const _baseOverhead = parseFloat(((_madassarLeave ? (1100 - 192.31) : 1100) + _coasterNet).toFixed(2));
     let _ohLabel = 'Base overhead';
     const _ohNotes = [];
     if(_hasCoaster) _ohNotes.push('+ coaster AED\u00a0169.23');
+    if(_hasCoaster2) _ohNotes.push('+ coaster AED\u00a0276.92');
     if(_madassarLeave) _ohNotes.push('\u2212 Madassar AED\u00a0192.31');
     if(_ohNotes.length) _ohLabel += ' (' + _ohNotes.join(', ') + ')';
 
@@ -3301,9 +3313,10 @@ async function parseAndSave(){
   const otCost = r2(totalOT * 3.8);
   const dwCost = dwSalTotal;
 
-  // OVERHEAD RULE 0: Coaster rent Jan-Mar 2026 (+AED 269.23/day) minus car fuel (-AED 100/day) = +AED 169.23/day net
-  const hasCoaster = workDate >= '2026-01-01' && workDate <= '2026-03-31';
-  const coasterNet = hasCoaster ? 169.23 : 0;
+  // OVERHEAD RULE 0: Coaster Jan-Mar 2026: +AED 169.23/day net | Jun 8 2026+: +AED 276.92/day (7200÷26)
+  const hasCoaster  = workDate >= '2026-01-01' && workDate <= '2026-03-31';
+  const hasCoaster2 = workDate >= '2026-06-08';
+  const coasterNet  = hasCoaster ? 169.23 : (hasCoaster2 ? 276.92 : 0);
 
   // OVERHEAD RULE 1: Madassar on leave 8 Mar to 30 Apr 2026
   // His salary AED 5,000/month = AED 192.31/day — removed from overhead during leave
@@ -3641,7 +3654,8 @@ async function loadPerf(){
     // Correct overhead for this specific date
     const _pc = dateStr >= '2026-01-01' && dateStr <= '2026-03-31';
     const _pm = dateStr >= '2026-03-08' && dateStr <= '2026-04-30';
-    const _perfOH = parseFloat((1100 + (_pc ? 169.23 : 0) + (_pm ? -192.31 : 0)).toFixed(2));
+    const _pc2 = dateStr >= '2026-06-08';
+    const _perfOH = parseFloat((1100 + (_pc ? 169.23 : (_pc2 ? 276.92 : 0)) + (_pm ? -192.31 : 0)).toFixed(2));
     const oh = r2(_perfOH / (d.total_workers || 1));
     const stars = workers.filter(w=>w.contribution>=200).length;
     const good  = workers.filter(w=>w.contribution>=0&&w.contribution<200).length;
@@ -4215,7 +4229,7 @@ async function patchOverheads(){
   const res = document.getElementById('pr2');
   res.style.display = 'block';
 
-  if(!confirm('This will recalculate and overwrite total_cost and net_pl for ALL historical records based on correct overhead per period.\n\nJan–Mar 2026: +AED 169.23/day (coaster)\nMar 8–Apr 30: −AED 192.31/day (Madassar leave)\n\nProceed?')) return;
+  if(!confirm('This will recalculate and overwrite total_cost and net_pl for ALL historical records based on correct overhead per period.\n\nJan–Mar 2026: +AED 169.23/day (coaster)\nJun 8 2026+: +AED 276.92/day (new coaster AED 7200/mo)\nMar 8–Apr 30: −AED 192.31/day (Madassar leave)\n\nProceed?')) return;
 
   status.textContent = '⏳ Fetching all records...';
   let html = '<div class="card" style="margin-top:12px"><div class="chd">Overhead Patch — Historical P&L Fix</div>';
@@ -4234,8 +4248,9 @@ async function patchOverheads(){
 
       // Calculate correct overhead for this date
       const hasCoaster   = dt >= '2026-01-01' && dt <= '2026-03-31';
+      const hasCoaster2  = dt >= '2026-06-08';
       const madLeave     = dt >= '2026-03-08' && dt <= '2026-04-30';
-      const coasterNet   = hasCoaster ? 169.23 : 0;
+      const coasterNet   = hasCoaster ? 169.23 : (hasCoaster2 ? 276.92 : 0);
       const madAdj       = madLeave   ? -192.31 : 0;
       const correctOH    = parseFloat((1100 + coasterNet + madAdj).toFixed(2));
       const oldOH        = 1100; // what was used when records were saved
@@ -4741,8 +4756,9 @@ async function loadProjectROI(){
       const totalInc  = parseFloat(row.total_income||1);
       // Overhead for that day
       const hasCoaster  = dt >= '2026-01-01' && dt <= '2026-03-31';
+    const hasCoaster2b = dt >= '2026-06-08';
       const madLeave    = dt >= '2026-03-08' && dt <= '2026-04-30';
-      const oh = parseFloat((1100 + (hasCoaster?169.23:0) + (madLeave?-192.31:0)).toFixed(2));
+      const oh = parseFloat((1100 + (hasCoaster?169.23:(hasCoaster2b?276.92:0)) + (madLeave?-192.31:0)).toFixed(2));
       const workerCostTotal = r2(totalCost - oh);
 
       ['572','innovo','basatin'].forEach(function(site){
