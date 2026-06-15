@@ -3347,9 +3347,10 @@ async function parseAndSave(){
         <span style="font-size:10px;opacity:.75">572 income shown after 5% retention${madassarOnLeave?' · Madassar on leave (-AED '+MADASSAR_DAILY.toFixed(0)+'/day)':''} ${isHoliday?'· Holiday: half salary':''}</span>
       </div>
     </div>
-    <div class="g3" style="margin-bottom:12px">
+    <div class="g4" style="margin-bottom:12px">
       <div class="kpi ${ip?'profit':'loss'}"><div class="kl">Net P&L</div><div class="kv">${ip?'+':''}AED ${Math.abs(net).toFixed(0)}</div><div class="ks">×26 = AED ${(net*26).toFixed(0)}/mth</div></div>
-      <div class="kpi teal"><div class="kl">572 net income</div><div class="kv">AED ${i572.toFixed(0)}</div><div class="ks">After 5% retention</div></div>
+      <div class="kpi teal"><div class="kl">Hilalco income</div><div class="kv">AED ${i572.toFixed(0)}</div><div class="ks">After 5% retention</div></div>
+      <div class="kpi gold"><div class="kl">Basatin income</div><div class="kv">AED ${ibas.toFixed(0)}</div><div class="ks">No retention</div></div>
       <div class="kpi blue"><div class="kl">Innovo income</div><div class="kv">AED ${iinn.toFixed(0)}</div><div class="ks">No retention</div></div>
     </div>
     <table>
