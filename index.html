@@ -2688,8 +2688,10 @@ async function loadDayDetail(dateStr){
 
     // Recompute exact base overhead for this date (mirrors parser logic)
     const _hasCoaster = (dateStr >= '2026-01-01' && dateStr <= '2026-03-31');
-    const _hasCoaster2 = dateStr >= '2026-06-08'; // New coaster from 8 Jun 2026
-    const _coasterNet = _hasCoaster ? 169.23 : (_hasCoaster2 ? 276.92 : 0);
+    const _hasCoaster2 = dateStr >= '2026-06-08';
+    const _isHoliday = parseFloat(d.total_income||0) === 0;
+    // Coaster divided by 26 working days — not charged on holidays
+    const _coasterNet = _hasCoaster ? 169.23 : ((!_isHoliday && _hasCoaster2) ? 276.92 : 0);
     const _madassarLeave = dateStr >= '2026-03-08' && dateStr <= '2026-04-30';
     const _baseOverhead = parseFloat(((_madassarLeave ? (1100 - 192.31) : 1100) + _coasterNet).toFixed(2));
     let _ohLabel = 'Base overhead';
@@ -3314,9 +3316,12 @@ async function parseAndSave(){
   const dwCost = dwSalTotal;
 
   // OVERHEAD RULE 0: Coaster Jan-Mar 2026: +AED 169.23/day net | Jun 8 2026+: +AED 276.92/day (7200÷26)
+  // Coaster cost is divided by 26 WORKING DAYS only — so NOT added on holidays/Sundays
   const hasCoaster  = workDate >= '2026-01-01' && workDate <= '2026-03-31';
   const hasCoaster2 = workDate >= '2026-06-08';
-  const coasterNet  = hasCoaster ? 169.23 : (hasCoaster2 ? 276.92 : 0);
+  // Jan-Mar coaster: applied on holidays too (spread across all days incl. holidays)
+  // Jun 8+ new coaster: divided by 26 WORKING days only — not on holidays
+  const coasterNet  = hasCoaster ? 169.23 : ((!isHoliday && hasCoaster2) ? 276.92 : 0);
 
   // OVERHEAD RULE 1: Madassar on leave 8 Mar to 30 Apr 2026
   // His salary AED 5,000/month = AED 192.31/day — removed from overhead during leave
@@ -4251,7 +4256,7 @@ async function patchOverheads(){
       const hasCoaster   = dt >= '2026-01-01' && dt <= '2026-03-31';
       const hasCoaster2  = dt >= '2026-06-08';
       const madLeave     = dt >= '2026-03-08' && dt <= '2026-04-30';
-      const coasterNet   = hasCoaster ? 169.23 : (hasCoaster2 ? 276.92 : 0);
+      const coasterNet   = hasCoaster ? 169.23 : ((income===0 ? 0 : 1) * (hasCoaster2 ? 276.92 : 0));
       const madAdj       = madLeave   ? -192.31 : 0;
       const correctOH    = parseFloat((1100 + coasterNet + madAdj).toFixed(2));
       const oldOH        = 1100; // what was used when records were saved
@@ -4759,7 +4764,8 @@ async function loadProjectROI(){
       const hasCoaster  = dt >= '2026-01-01' && dt <= '2026-03-31';
     const hasCoaster2b = dt >= '2026-06-08';
       const madLeave    = dt >= '2026-03-08' && dt <= '2026-04-30';
-      const oh = parseFloat((1100 + (hasCoaster?169.23:(hasCoaster2b?276.92:0)) + (madLeave?-192.31:0)).toFixed(2));
+      const isHolday2 = parseFloat(row.total_income||0)===0;
+    const oh = parseFloat((1100 + (hasCoaster?169.23:(isHolday2?0:(hasCoaster2b?276.92:0))) + (madLeave?-192.31:0)).toFixed(2));
       const workerCostTotal = r2(totalCost - oh);
 
       ['572','innovo','basatin'].forEach(function(site){
