@@ -3327,7 +3327,7 @@ async function parseAndSave(){
   const hasCoaster2 = workDate >= '2026-06-08';
   // Jan-Mar coaster: applied on holidays too (spread across all days incl. holidays)
   // Jun 8+ new coaster: divided by 26 WORKING days only — not on holidays
-  const coasterNet  = hasCoaster ? 169.23 : ((!isHoliday && hasCoaster2) ? 276.92 : 0);
+  const coasterNet  = hasCoaster ? 169.23 : ((!isHolidayEarly && hasCoaster2) ? 276.92 : 0);
 
   // OVERHEAD RULE 1: Madassar on leave 8 Mar to 30 Apr 2026
   // His salary AED 5,000/month = AED 192.31/day — removed from overhead during leave
