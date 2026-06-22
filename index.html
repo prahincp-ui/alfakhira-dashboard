@@ -3047,6 +3047,12 @@ async function parseAndSave(){
   const status = document.getElementById('saveStatus');
   res.style.display='none';
   status.textContent = '⏳ Calculating...';
+  // Safety: clear frozen state after 30s
+  const _safetyTimer = setTimeout(function(){
+    if((status.textContent||'').includes('alculating')){
+      status.textContent = '❌ Timed out — check browser console (F12) for errors';
+    }
+  }, 30000);
 
   // Extract date — handle: "Date: 23-5-2026", "23-5-2026", "23/05/2026", "Date:23-5-2026 — saved from WhatsApp"
   // Always expect DD-MM-YYYY format from Billal
@@ -3426,6 +3432,7 @@ async function parseAndSave(){
       } catch(wi){ console.warn('Work items save failed (non-critical):',wi.message); }
     }
 
+    clearTimeout(_safetyTimer);
     status.textContent = '✅ Saved!';
     if(typeof loadedProjects !== 'undefined') Object.keys(loadedProjects).forEach(function(k){ delete loadedProjects[k]; });
     await loadOverview();
@@ -3444,6 +3451,7 @@ async function parseAndSave(){
           </span>
         </div>
       </div>`;
+    clearTimeout(_safetyTimer);
     status.textContent = '❌ Save failed';
   }
 }
@@ -5786,8 +5794,11 @@ async function generateDailyReport(workDate, workItems, net, totalIncome, totalC
   let cumByArea = {};
   try {
     const month = workDate.substring(0,7);
-    const prevItems = await sbGet('work_items',
+    // Add timeout to prevent hanging
+    const prevItemsPromise = sbGet('work_items',
       `?work_date=gte.${month}-01&work_date=lt.${workDate}&select=site,work_area,work_type,quantity,unit`);
+    const timeoutPromise = new Promise((_,reject) => setTimeout(()=>reject(new Error('timeout')),5000));
+    const prevItems = await Promise.race([prevItemsPromise, timeoutPromise]);
     prevItems.forEach(function(it){
       const key = (it.site||'572') + '|' + (it.work_area||'Unknown');
       const wt = (it.work_type||'').trim();
@@ -5795,7 +5806,7 @@ async function generateDailyReport(workDate, workItems, net, totalIncome, totalC
       if(!cumByArea[key][wt]) cumByArea[key][wt] = 0;
       cumByArea[key][wt] = parseFloat((cumByArea[key][wt] + parseFloat(it.quantity||0)).toFixed(2));
     });
-  } catch(e){ console.warn('Could not load cumulative:', e.message); }
+  } catch(e){ console.warn('Could not load cumulative (non-fatal):', e.message); cumByArea = {}; }
 
   // ── BUILD TEXT REPORT ──
   const isPL = net >= 0;
