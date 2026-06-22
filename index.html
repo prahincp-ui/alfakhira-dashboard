@@ -232,7 +232,7 @@ tr:hover td{background:var(--surface2)}
           <tr><td>Grouting</td><td><span class="rp">1.54</span></td><td><span class="rp">1.54</span></td><td><span class="rp">1.54</span></td></tr>
           <tr><td>Blinding</td><td><span class="rp">3.00</span></td><td style="color:var(--ink3)">—</td><td style="color:var(--ink3)">—</td></tr>
           <tr><td>Haunching</td><td><span class="rp">3.00</span></td><td style="color:var(--ink3)">—</td><td style="color:var(--ink3)">—</td></tr>
-          <tr><td>Tile /m²</td><td><span class="rp">12.00</span></td><td style="color:var(--ink3)">—</td><td><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">13.00 ✓</span></td></tr>
+          <tr><td>Tile /m²</td><td><span class="rp">12.00</span></td><td><span class="rp" style="background:rgba(106,79,207,.12);border-color:rgba(106,79,207,.3);color:var(--purple)">9.00 ✓</span></td><td><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">13.00 ✓</span></td></tr>
           <tr style="background:var(--green-bg)"><td><strong>Total kerb</strong></td><td><span class="rp">≈13</span></td><td><span class="rp">≈9</span></td><td><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">14.50+</span></td></tr>
         </tbody>
       </table>
@@ -2362,7 +2362,7 @@ Daily Wage: 12P"></textarea>
         <tr><td>Grouting</td><td>LM</td><td class="tr"><span class="rp">1.54</span></td><td class="tr"><span class="rp">1.54</span></td><td class="tr"><span class="rp">1.54</span></td><td style="font-size:11px">Kerb finishing</td></tr>
         <tr><td>Blinding</td><td>LM</td><td class="tr"><span class="rp">3.00</span></td><td class="tr" style="color:var(--ink3)">—</td><td class="tr" style="color:var(--ink3)">—</td><td></td></tr>
         <tr><td>Haunching</td><td>LM</td><td class="tr"><span class="rp">3.00</span></td><td class="tr" style="color:var(--ink3)">—</td><td class="tr" style="color:var(--ink3)">—</td><td></td></tr>
-        <tr><td>Tile (all types)</td><td>m²</td><td class="tr"><span class="rp">12.00</span></td><td class="tr" style="color:var(--ink3)">—</td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">13.00 ✓</span></td><td style="font-size:11px">Incl. cutpiece cost</td></tr>
+        <tr><td>Tile (all types)</td><td>m²</td><td class="tr"><span class="rp">12.00</span></td><td class="tr"><span class="rp" style="background:rgba(106,79,207,.12);border-color:rgba(106,79,207,.3);color:var(--purple)">9.00 ✓</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">13.00 ✓</span></td><td style="font-size:11px">Incl. cutpiece cost</td></tr>
         <tr><td>Tile cutpiece</td><td>LM</td><td class="tr" style="color:var(--ink3)">AED 0</td><td class="tr" style="color:var(--ink3)">—</td><td class="tr" style="color:var(--ink3)">AED 0</td><td style="font-size:11px">Unlocks tile invoice</td></tr>
         <tr><td>Retention</td><td></td><td class="tr" style="color:var(--red)">5% held</td><td class="tr" style="color:var(--green)">None</td><td class="tr" style="color:var(--green)">None</td><td></td></tr>
         <tr style="background:var(--green-bg)"><td><strong>Total kerb rate</strong></td><td>LM</td><td class="tr"><span class="rp">≈ AED 13</span></td><td class="tr"><span class="rp">≈ AED 9</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 14.50</span></td><td style="font-size:11px">12.96 + 1.54 = 14.50 ✓</td></tr>
@@ -2410,7 +2410,7 @@ const HDRS = {
 // ── RATES ──
 const RATES = {
   '572'    :{kerb:5.55,grouting:1.54,blinding:3.0,haunching:3.0,tile:12.0,tile_border:12.0},
-  'innovo' :{kerb:7.50,grouting:1.54,tile:0,tile_border:0},
+  'innovo' :{kerb:7.50,grouting:1.54,tile:9.00,tile_border:0},
   'basatin':{kerb:12.96,grouting:1.54,tile:13.0,tile_border:13.0},
 };
 
@@ -4952,7 +4952,7 @@ function parseWorkerIncomes(raw, basatinTileRate){
   let currentGroup = null;
   const RATES = {
     '572': {kerb:5.55, grouting:1.54, blinding:3.00, haunching:3.00, tile:12.00, tile_border:0},
-    'innovo': {kerb:7.50, grouting:1.54},
+    'innovo': {kerb:7.50, grouting:1.54, tile:9.00},
     'basatin': {kerb:14.50, grouting:1.54, tile: basatinTileRate||13.00, tile_border:0}
   };
 
@@ -5236,6 +5236,7 @@ const PROJECT_CONFIG = {
     workTypes: [
       {key:'Kerb Fixing', rate:7.50, unit:'LM'},
       {key:'Grouting', rate:1.54, unit:'LM'},
+      {key:'Tile Laying', rate:9.00, unit:'m²'},
     ]
   },
   'basatin': {
