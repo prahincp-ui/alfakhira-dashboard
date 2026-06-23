@@ -3264,18 +3264,24 @@ async function parseAndSave(){
   let lastGroupSize = 1;
   txt.split('\n').forEach(otLine => {
     const otSL = otLine.toLowerCase();
-    // Track group size from worker lines like "2P. Bilal. Singlesh"
-    const gpMatch = otLine.match(/^(\d+)P[\s.]/i);
+    // Track group size from multiple formats:
+    // Old: "2P. Bilal. Singlesh" or "CORE – 2P"
+    // New: "Workers: Evod. Josue (2P)" or "Worker:Remy (1P)" or "Group: Faruk, Titu (2P)"
+    const gpMatch = otLine.match(/^(\d+)P[\s.]/i)   // "2P. Bilal"
+                 || otLine.match(/\((\d+)P\)/i)       // "(2P)" at end
+                 || otLine.match(/CORE\s*[-–]\s*(\d+)P/i)   // "CORE – 2P"
+                 || otLine.match(/DAILY\s*WAGE\s*[-–]\s*(\d+)P/i); // "DAILY WAGE – 7P"
     if(gpMatch) lastGroupSize = parseInt(gpMatch[1]) || 1;
-    // Skip total combined and ×××
+    // "One person over time" = 1 person
+    if(/one\s*person/i.test(otSL)) lastGroupSize = 1;
+    // Skip total combined lines
     if(/total\s*combined/i.test(otSL)) return;
     if(/[×x]{2,}/.test(otLine)) return;
     // OT line — multiply by group size if "per person"
-    // Handle "Per person over time", "One person over time", "over time"
     const otM = otLine.match(/over\s*[Tt]ime\s*[=:\-]\s*([\d.]+)\s*H/i);
     if(otM){
       const hrs = parseFloat(otM[1]);
-      const isPerPerson = /per\s*person/i.test(otSL);
+      const isPerPerson = /per\s*person|one\s*person/i.test(otSL);
       totalOT += isPerPerson ? hrs * lastGroupSize : hrs;
     }
   });
