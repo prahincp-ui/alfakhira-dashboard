@@ -3106,10 +3106,12 @@ async function parseAndSave(){
   // Detect holiday EARLY — needed before coreN calculation
   const isHolidayEarly = /eid|no work today|holiday|compo.?cter? brush/i.test(txt);
   const ACTUAL_CORE_COUNT = 11; // Bilal,Singlesh,Faruk,Gofur,Kulwant,Dharampal,Sujon,Titu,Siraj,Jashem,Josem
+  // Match "AL Fakhira: 7P" — must have P suffix to avoid matching "+ 2 Foreman"
   const corem = txt.match(/AL\s*Fakhira\s*[:\s]*([\d]+)\s*P/i);
   const coreN = corem ? parseInt(corem[1]) : (isHolidayEarly ? ACTUAL_CORE_COUNT : (total - dwn));
-  const afm = txt.match(/AL\s*Fakhira[^+\n]*\+?\s*(\d+)/i);
-  const coreNAct = afm ? parseInt(afm[1]) : coreN;
+  // coreNAct: foremen present on site (not counted as workers, just for info)
+  // Do NOT use afm to override coreN — it was matching "+ 2 Foreman" as core count
+  const coreNAct = coreN;
 
   // Parse quantities
   // Date-aware rate: Basatin tile was AED 15.00/m² in Jan-Mar 2026, AED 13.00 from Apr 2026
