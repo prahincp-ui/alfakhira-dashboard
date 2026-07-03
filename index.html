@@ -2357,12 +2357,12 @@ Daily Wage: 12P"></textarea>
     <table>
       <thead><tr><th>Work Type</th><th>Unit</th><th class="tr">Hilalco</th><th class="tr">Innovo</th><th class="tr">Basatin</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td>Kerb fixing / roll</td><td>LM</td><td class="tr"><span class="rp">5.55</span></td><td class="tr"><span class="rp">7.50</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">12.96 ✓</span></td><td style="font-size:11px">Basatin = best rate!</td></tr>
+        <tr><td>Kerb fixing / roll</td><td>LM</td><td class="tr"><span class="rp">5.55</span></td><td class="tr"><span class="rp">7.50</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">12.96 ✓</span></td><td style="font-size:11px">LPO correction pending → 14.50 total</td></tr>
         <tr><td>Kerb cutpiece / round</td><td>LM</td><td class="tr"><span class="rp">5.55</span></td><td class="tr"><span class="rp">7.50</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">12.96 ✓</span></td><td style="font-size:11px">Billable finishing</td></tr>
-        <tr><td>Grouting</td><td>LM</td><td class="tr"><span class="rp">1.54</span></td><td class="tr"><span class="rp">1.54</span></td><td class="tr"><span class="rp">1.54</span></td><td style="font-size:11px">Kerb finishing</td></tr>
+        <tr><td>Grouting</td><td>LM</td><td class="tr"><span class="rp">1.54</span></td><td class="tr"><span class="rp">1.54</span></td><td class="tr"><span class="rp">1.50</span></td><td style="font-size:11px">Kerb finishing · Basatin 1.50 (Mar 2026+)</td></tr>
         <tr><td>Blinding</td><td>LM</td><td class="tr"><span class="rp">3.00</span></td><td class="tr" style="color:var(--ink3)">—</td><td class="tr" style="color:var(--ink3)">—</td><td></td></tr>
         <tr><td>Haunching</td><td>LM</td><td class="tr"><span class="rp">3.00</span></td><td class="tr" style="color:var(--ink3)">—</td><td class="tr" style="color:var(--ink3)">—</td><td></td></tr>
-        <tr><td>Tile (all types)</td><td>m²</td><td class="tr"><span class="rp">12.00</span></td><td class="tr"><span class="rp" style="background:rgba(106,79,207,.12);border-color:rgba(106,79,207,.3);color:var(--purple)">9.00 ✓</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">13.00 ✓</span></td><td style="font-size:11px">Incl. cutpiece cost</td></tr>
+        <tr><td>Tile (all types)</td><td>m²</td><td class="tr"><span class="rp">12.00</span></td><td class="tr"><span class="rp" style="background:rgba(106,79,207,.12);border-color:rgba(106,79,207,.3);color:var(--purple)">9.00 ✓</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">14.00 ✓</span></td><td style="font-size:11px">Jun 2026+ AED 14 · Incl. cutpiece</td></tr>
         <tr><td>Tile cutpiece</td><td>LM</td><td class="tr" style="color:var(--ink3)">AED 0</td><td class="tr" style="color:var(--ink3)">—</td><td class="tr" style="color:var(--ink3)">AED 0</td><td style="font-size:11px">Unlocks tile invoice</td></tr>
         <tr><td>Retention</td><td></td><td class="tr" style="color:var(--red)">5% held</td><td class="tr" style="color:var(--green)">None</td><td class="tr" style="color:var(--green)">None</td><td></td></tr>
         <tr style="background:var(--green-bg)"><td><strong>Total kerb rate</strong></td><td>LM</td><td class="tr"><span class="rp">≈ AED 13</span></td><td class="tr"><span class="rp">≈ AED 9</span></td><td class="tr"><span class="rp" style="background:#e8f5ec;border-color:rgba(61,153,84,.3);color:var(--green)">AED 14.50</span></td><td style="font-size:11px">12.96 + 1.54 = 14.50 ✓</td></tr>
@@ -3115,8 +3115,18 @@ async function parseAndSave(){
 
   // Parse quantities
   // Date-aware rate: Basatin tile was AED 15.00/m² in Jan-Mar 2026, AED 13.00 from Apr 2026
-  const basatinTileRate = workDate < '2026-04-01' ? 15.00 : 13.00;
-  const basatinKerbRate = workDate < '2026-04-01' ? 12.96 : 12.96; // same throughout
+  // Basatin rates:
+  // Before Mar 2026:  different project — kerb 12.96, grout 1.54
+  // Mar 2026+:        current project — kerb 11.50, grout 1.50, tile 14.00
+  // (Jan-Feb tile at old project rate — not applicable to current contract)
+  // Basatin rates (Saadiyat Lagoons current project from Mar 2026):
+  // Kerb: AED 12.96, Grouting: AED 1.54 — total AED 14.50/LM (agreed verbally, LPO correction pending)
+  // Tile: AED 14.00/m² (new, from Mar 2026)
+  // Before Mar 2026: old Basatin project — same kerb/grout rates
+  const basatinNewLPO   = workDate >= '2026-03-01';
+  const basatinKerbRate  = 12.96;  // unchanged — LPO correction pending
+  const basatinGroutRate = 1.54;   // unchanged
+  const basatinTileRate  = basatinNewLPO ? 14.00 : 13.00;  // tile 14.00 from Mar 2026
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
 
