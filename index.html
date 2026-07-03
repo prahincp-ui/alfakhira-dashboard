@@ -3139,7 +3139,7 @@ async function parseAndSave(){
     // NEW FORMAT: "Project: Site 572, 3P" or "Project :site innovo, 1P"
     // Both formats set sectionSite
     // NEW FORMAT: "📍 Site 572" or "📍 Site 591" or "📍 Site Basatin"
-    const emojiSiteM = line.match(/📍\s*Site\s*(\S+)/i);
+    const emojiSiteM = line.match(/📍\s*Site\s*([A-Za-z0-9]+)/i); // strip dashes/underscores after site name
     if(emojiSiteM){
       const ps = emojiSiteM[1].toLowerCase().trim();
       if(ps==='innovo') { site='innovo'; sectionSite='innovo'; }
