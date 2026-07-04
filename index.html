@@ -3129,6 +3129,8 @@ async function parseAndSave(){
   const basatinTileRate  = basatinNewLPO ? 14.00 : 13.00;  // tile 14.00 from Mar 2026
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
+  RATES['basatin'].kerb = basatinKerbRate;
+  RATES['basatin'].grouting = basatinGroutRate;
 
   let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown', currentSiteNumber='572';
   txt.split('\n').forEach(line=>{
