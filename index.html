@@ -3124,8 +3124,8 @@ async function parseAndSave(){
   // Tile: AED 14.00/m² (new, from Mar 2026)
   // Before Mar 2026: old Basatin project — same kerb/grout rates
   const basatinNewLPO   = workDate >= '2026-03-01';
-  const basatinKerbRate  = 12.96;  // unchanged — LPO correction pending
-  const basatinGroutRate = 1.54;   // unchanged
+  const basatinKerbRate  = basatinNewLPO ? 11.50 : 12.96;  // LPO confirmed: kerb 11.50 from Mar 2026
+  const basatinGroutRate = basatinNewLPO ? 1.50 : 1.54;   // LPO confirmed: grouting 1.50 from Mar 2026
   const basatinTileRate  = basatinNewLPO ? 14.00 : 13.00;  // tile 14.00 from Mar 2026
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
@@ -3351,7 +3351,10 @@ async function parseAndSave(){
   // His salary AED 5,000/month = AED 192.31/day — removed from overhead during leave
   const MADASSAR_DAILY = r2(5000/26);
   const madassarOnLeave = workDate >= '2026-03-08' && workDate <= '2026-04-30';
-  const baseOverhead = r2((madassarOnLeave ? r2(1100 - MADASSAR_DAILY) : 1100) + coasterNet);
+  const isSunday = new Date(workDate+'T00:00:00Z').getUTCDay() === 0;
+  const FIXED_NONWORK_OVERHEAD = 211.54 + 286.35;
+  const baseOverheadFull = r2((madassarOnLeave ? r2(1100 - MADASSAR_DAILY) : 1100) + coasterNet);
+  const baseOverhead = isSunday && isHolidayEarly ? 0 : isSunday ? r2(baseOverheadFull - FIXED_NONWORK_OVERHEAD) : baseOverheadFull;
 
   // OVERHEAD RULE 2: Half salary on holidays / no-work days
   // Core workers paid half, no daily wage workers, fixed overhead unchanged
