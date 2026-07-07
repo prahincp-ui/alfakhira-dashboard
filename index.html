@@ -2999,7 +2999,8 @@ async function loadDayDetail(dateStr){
           <div class="chd">Income</div>
           <div class="plr"><span>Site 572 Hilalco <span style="font-size:10px;color:var(--ink3)">(net of 5% retention)</span></span><span style="color:var(--teal)">AED ${f(d.income_572)}</span></div>
           <div class="plr"><span>Innovo</span><span style="color:var(--purple)">AED ${f(d.income_innovo)}</span></div>
-          <div class="plr"><span>Basatin</span><span style="color:var(--amber)">AED ${f(d.income_basatin)}</span></div>
+          <div class="plr"><span>Basatin — Main</span><span style="color:var(--amber)">AED ${f((parseFloat(d.income_basatin)||0)-(parseFloat(d.income_basatin_cycle)||0))}</span></div>
+          <div class="plr"><span>Basatin — Cycle Track</span><span style="color:var(--amber)">AED ${f(d.income_basatin_cycle||0)}</span></div>
           <div class="plr tot"><span>Total Receivable</span><span>AED ${f(d.total_income)}</span></div>
           <div style="margin-top:14px">
             <div style="font-size:10px;color:var(--ink3);margin-bottom:6px">Income split</div>
@@ -3132,7 +3133,7 @@ async function parseAndSave(){
   RATES['basatin'].kerb = basatinKerbRate;
   RATES['basatin'].grouting = basatinGroutRate;
 
-  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown', currentSiteNumber='572';
+  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, ibasCycle=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown', currentSiteNumber='572';
   txt.split('\n').forEach(line=>{
     const sl = line.toLowerCase();
 
@@ -3221,6 +3222,7 @@ async function parseAndSave(){
 
       const r = RATES[lineSite]||RATES['572'];
       let rate=0, workType='';
+      const isCycleTrack = lineSite==='basatin' && /cycle[\s\-:_]*track/i.test(currentWorkArea);
 
       // ── PRIORITY ORDER: most specific first to avoid wrong matches ──
 
@@ -3254,17 +3256,17 @@ async function parseAndSave(){
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
-        rate=unit==='LM'?(r.kerb||0):0; workType='Kerb Fixing';
+        rate = isCycleTrack ? 8.50 : (unit==='LM'?(r.kerb||0):0); workType = isCycleTrack ? 'Kerb Fixing (Cycle Track)' : 'Kerb Fixing';
       }
 
       // Update site for this line's income allocation
       site = lineSite;
 
       const inc = r2(qty*rate);
-      const netInc = lineSite==='572' ? r2(inc*0.95) : inc;
+      const netInc = lineSite==='572' ? r2(inc*0.95) : (isCycleTrack ? r2(inc*0.895) : inc);
       if(lineSite==='572') i572=r2(i572+netInc);
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
-      else ibas=r2(ibas+inc);
+      else { ibas=r2(ibas+netInc); if(isCycleTrack) ibasCycle=r2(ibasCycle+netInc); }
 
       rows.push({desc:line.trim().substring(0,52),qty,unit,site:lineSite,rate,inc:netInc}); // display net income
       workItems.push({work_date:workDate,worker_names:workerNames||null,site:lineSite,site_number:lineSite==='572'?currentSiteNumber:'',work_area:currentWorkArea||'Unknown',work_type:workType||null,quantity:qty,unit,rate,income:netInc}); // netInc applies 5% retention for 572
@@ -3414,6 +3416,7 @@ async function parseAndSave(){
       income_572: parseFloat(i572)||0,
       income_innovo: parseFloat(iinn)||0,
       income_basatin: parseFloat(ibas)||0,
+      income_basatin_cycle: parseFloat(ibasCycle)||0,
       total_income: parseFloat(totalIncome)||0,
       total_cost: parseFloat(totalCost)||0,
       net_pl: parseFloat(net)||0,
