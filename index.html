@@ -3127,11 +3127,16 @@ async function parseAndSave(){
   const basatinNewLPO   = workDate >= '2026-03-01';
   const basatinKerbRate  = basatinNewLPO ? 11.50 : 12.96;  // LPO confirmed: kerb 11.50 from Mar 2026
   const basatinGroutRate = basatinNewLPO ? 1.50 : 1.54;   // LPO confirmed: grouting 1.50 from Mar 2026
-  const basatinTileRate  = basatinNewLPO ? 14.00 : 13.00;  // tile 14.00 from Mar 2026
+  const basatinTileRate  = basatinNewLPO ? 14.50 : 13.00;  // tile 14.50 from Mar 2026 (LPO confirmed)
   RATES['basatin'].tile = basatinTileRate;
   RATES['basatin'].tile_border = basatinTileRate;
   RATES['basatin'].kerb = basatinKerbRate;
   RATES['basatin'].grouting = basatinGroutRate;
+
+  // Innovo Saadiyat Lagoons LPO: tile 10.25 from Mar 2026 (was 9.00)
+  const innovoNewLPO = workDate >= '2026-03-01';
+  const innovoTileRate = innovoNewLPO ? 10.25 : 9.00;
+  RATES['innovo'].tile = innovoTileRate;
 
   let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, ibasCycle=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown', currentSiteNumber='572';
   txt.split('\n').forEach(line=>{
