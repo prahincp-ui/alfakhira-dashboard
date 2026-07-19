@@ -3229,7 +3229,7 @@ async function parseAndSave(){
       const r = RATES[lineSite]||RATES['572'];
       let rate=0, workType='';
       const isCycleTrack = lineSite==='basatin' && /cycle[\s\-:_]*track/i.test(currentWorkArea);
-      const isSite597 = lineSite==='572' && currentSiteNumber==='597';
+      const isSite597 = lineSite==='572' && currentSiteNumber==='597' && workDate >= '2026-07-01';
 
       // ── PRIORITY ORDER: most specific first to avoid wrong matches ──
 
