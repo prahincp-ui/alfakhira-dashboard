@@ -2997,7 +2997,8 @@ async function loadDayDetail(dateStr){
       <div class="g2">
         <div class="card">
           <div class="chd">Income</div>
-          <div class="plr"><span>Site 572 Hilalco <span style="font-size:10px;color:var(--ink3)">(net of 5% retention)</span></span><span style="color:var(--teal)">AED ${f(d.income_572)}</span></div>
+          <div class="plr"><span>572 Hilalco — Standard <span style="font-size:10px;color:var(--ink3)">(net of 5% retention)</span></span><span style="color:var(--teal)">AED ${f((parseFloat(d.income_572)||0)-(parseFloat(d.income_597)||0))}</span></div>
+          <div class="plr"><span>Site 597 — Granite Kerbstone <span style="font-size:10px;color:var(--ink3)">(net of 5% retention)</span></span><span style="color:var(--teal)">AED ${f(d.income_597||0)}</span></div>
           <div class="plr"><span>Innovo</span><span style="color:var(--purple)">AED ${f(d.income_innovo)}</span></div>
           <div class="plr"><span>Basatin — Main</span><span style="color:var(--amber)">AED ${f((parseFloat(d.income_basatin)||0)-(parseFloat(d.income_basatin_cycle)||0))}</span></div>
           <div class="plr"><span>Basatin — Cycle Track</span><span style="color:var(--amber)">AED ${f(d.income_basatin_cycle||0)}</span></div>
@@ -3138,7 +3139,7 @@ async function parseAndSave(){
   const innovoTileRate = innovoNewLPO ? 10.25 : 9.00;
   RATES['innovo'].tile = innovoTileRate;
 
-  let site='572', sectionSite='572', i572=0, iinn=0, ibas=0, ibasCycle=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown', currentSiteNumber='572';
+  let site='572', sectionSite='572', i572=0, i597=0, iinn=0, ibas=0, ibasCycle=0, workItems=[], rows=[], currentWorkerNames='', currentWorkArea='Unknown', currentSiteNumber='572';
   txt.split('\n').forEach(line=>{
     const sl = line.toLowerCase();
 
@@ -3228,12 +3229,13 @@ async function parseAndSave(){
       const r = RATES[lineSite]||RATES['572'];
       let rate=0, workType='';
       const isCycleTrack = lineSite==='basatin' && /cycle[\s\-:_]*track/i.test(currentWorkArea);
+      const isSite597 = lineSite==='572' && currentSiteNumber==='597';
 
       // ── PRIORITY ORDER: most specific first to avoid wrong matches ──
 
       // 1. GROUTING — check first, even if line also contains "cutpece" (grouting cutpece = billable grouting)
       if(sl.match(/grutt|grout/)){
-        rate=r.grouting||0; workType='Grouting';
+        rate = isSite597 ? 1.5 : (r.grouting||0); workType = isSite597 ? 'Grouting (Site 597 - Granite Kerbstone)' : 'Grouting';
       }
       // 2. TILE CUTPIECE — taile+cutpece combination
       else if(sl.match(/taile.*cutpece|tile.*cutpiece|cutpece.*taile|cutpiece.*tile/)){
@@ -3261,7 +3263,7 @@ async function parseAndSave(){
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
-        rate = isCycleTrack ? 8.50 : (unit==='LM'?(r.kerb||0):0); workType = isCycleTrack ? 'Kerb Fixing (Cycle Track)' : 'Kerb Fixing';
+        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (unit==='LM'?(r.kerb||0):0)); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : 'Kerb Fixing');
       }
 
       // Update site for this line's income allocation
@@ -3269,7 +3271,7 @@ async function parseAndSave(){
 
       const inc = r2(qty*rate);
       const netInc = lineSite==='572' ? r2(inc*0.95) : (isCycleTrack ? r2(inc*0.895) : inc);
-      if(lineSite==='572') i572=r2(i572+netInc);
+      if(lineSite==='572') { i572=r2(i572+netInc); if(isSite597) i597=r2(i597+netInc); }
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
       else { ibas=r2(ibas+netInc); if(isCycleTrack) ibasCycle=r2(ibasCycle+netInc); }
 
@@ -3422,6 +3424,7 @@ async function parseAndSave(){
       income_innovo: parseFloat(iinn)||0,
       income_basatin: parseFloat(ibas)||0,
       income_basatin_cycle: parseFloat(ibasCycle)||0,
+      income_597: parseFloat(i597)||0,
       total_income: parseFloat(totalIncome)||0,
       total_cost: parseFloat(totalCost)||0,
       net_pl: parseFloat(net)||0,
