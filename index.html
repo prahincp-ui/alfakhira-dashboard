@@ -3268,7 +3268,7 @@ async function parseAndSave(){
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
-        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 6.50 : (unit==='LM'?(r.kerb||0):0))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : 'Kerb Fixing'));
+        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 10.00 : (unit==='LM'?(r.kerb||0):0))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : 'Kerb Fixing'));
       }
 
       // Update site for this line's income allocation
