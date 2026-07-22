@@ -3234,8 +3234,12 @@ async function parseAndSave(){
 
       // ── PRIORITY ORDER: most specific first to avoid wrong matches ──
 
+      // 0. COMBINED KERB+GROUTING — single line describing both as one job (e.g. "Kerb Fixing Cutpece +Grutting = 36.1Lm")
+      if(sl.match(/kerb/) && sl.match(/grutt|grout/) && !sl.match(/taile|tile/) && !isSite597 && !isBorder && !isCycleTrack){
+        rate = (r.kerb||0) + (r.grouting||0); workType = 'Kerb Fixing + Grouting (combined)';
+      }
       // 1. GROUTING — check first, even if line also contains "cutpece" (grouting cutpece = billable grouting)
-      if(sl.match(/grutt|grout/)){
+      else if(sl.match(/grutt|grout/)){
         rate = isSite597 ? 1.5 : (r.grouting||0); workType = isSite597 ? 'Grouting (Site 597 - Granite Kerbstone)' : 'Grouting';
       }
       // 2. TILE CUTPIECE — taile+cutpece combination
