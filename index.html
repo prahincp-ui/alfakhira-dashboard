@@ -3254,8 +3254,8 @@ async function parseAndSave(){
       else if(sl.match(/haunching|hounching/)){
         rate=r.haunching||0; workType='Haunching';
       }
-      // 6. TILE BORDER
-      else if(sl.match(/border/)){
+      // 6. TILE BORDER (kerb-border lines fall through to the KERB branch instead)
+      else if(sl.match(/border/) && !sl.match(/kerb/)){
         rate=r.tile_border||0; workType='Tile Border';
       }
       // 7. TILE (not cutpiece, not border)
