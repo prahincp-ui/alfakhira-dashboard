@@ -3258,9 +3258,9 @@ async function parseAndSave(){
       else if(sl.match(/haunching|hounching/)){
         rate=r.haunching||0; workType='Haunching';
       }
-      // 6. TILE BORDER (kerb-border lines fall through to the KERB branch instead)
-      else if(sl.match(/border/) && !sl.match(/kerb/)){
-        rate=r.tile_border||0; workType='Tile Border';
+      // 6. BORDER — unified: Basatin border (any phrasing, kerb or tile) = AED 10.00/LM; other sites use standard tile_border rate
+      else if(sl.match(/border/)){
+        rate = lineSite==='basatin' ? 10.00 : (r.tile_border||0); workType = 'Tile Border';
       }
       // 7. TILE (not cutpiece, not border)
       else if(sl.match(/taile|tile/)){
@@ -3268,7 +3268,7 @@ async function parseAndSave(){
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
-        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 10.00 : (unit==='LM'?(r.kerb||0):0))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : 'Kerb Fixing'));
+        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (unit==='LM'?(r.kerb||0):0)); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : 'Kerb Fixing');
       }
 
       // Update site for this line's income allocation
