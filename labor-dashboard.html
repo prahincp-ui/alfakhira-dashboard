@@ -483,7 +483,7 @@ async function loadRecentEntries(){
   let dwRecords = [];
   if (dateList.length){
     const inList = dateList.map(d=>`"${d}"`).join(',');
-    dwRecords = await sbGet('worker_daily_records', `?select=report_date,worker_name,site,work_area,ot_hours&category=eq.daily_wage&report_date=in.(${inList})`);
+    dwRecords = await sbGet('worker_daily_records', `?select=report_date,worker_name,site,work_area,tasks_raw,ot_hours&category=eq.daily_wage&report_date=in.(${inList})`);
   }
   const recordsByDate = {}; const aedByDate = {};
   dwRecords.forEach(r=>{
@@ -506,12 +506,12 @@ async function loadRecentEntries(){
     </tr>`;
     const detailRows = (recordsByDate[d.report_date]||[]).slice().sort((a,b)=>a.worker_name.localeCompare(b.worker_name));
     html += `<tr class="dateDetail" data-date-detail="${d.report_date}" style="display:none"><td></td><td colspan="5" style="padding:10px 10px 14px">
-      <table><thead><tr><th>Name</th><th>Site</th><th>Work Area</th><th class="tr">Rate/Day</th><th class="tr">OT Hrs</th></tr></thead><tbody>
+      <table><thead><tr><th>Name</th><th>Site</th><th>Work Area</th><th>Work Done</th><th class="tr">Rate/Day</th><th class="tr">OT Hrs</th></tr></thead><tbody>
       ${detailRows.map(r=>{
         const w = workerInfo(r.worker_name);
         const rate = w!=null ? Number(w.rate_amount) : null;
         const otBadge = r.ot_hours ? `<span class="badge warn">${r.ot_hours}H</span>` : '—';
-        return `<tr><td class="name">${r.worker_name}</td><td>${r.site}</td><td class="mono-sm">${r.work_area||''}</td><td class="tr">${rate!=null?'AED '+rate:'<span class="badge warn">not in roster</span>'}</td><td class="tr">${otBadge}</td></tr>`;
+        return `<tr><td class="name">${r.worker_name}</td><td>${r.site}</td><td class="mono-sm">${r.work_area||''}</td><td class="mono-sm">${r.tasks_raw||''}</td><td class="tr">${rate!=null?'AED '+rate:'<span class="badge warn">not in roster</span>'}</td><td class="tr">${otBadge}</td></tr>`;
       }).join('')}
       </tbody></table>
     </td></tr>`;
