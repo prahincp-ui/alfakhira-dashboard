@@ -323,6 +323,46 @@ function parseBillalText(raw){
   return {personRows, attendance};
 }
 
+// ── SIMPLIFIED SITE RATES for per-person revenue estimate ──
+// Covers the common task types only (kerb, grouting, tile/border). Special
+// variants — cutpiece combos, date-based tile rates, cycle track, border
+// sub-rates, granite kerbstone, retention — are NOT applied here; that full
+// logic lives in the Site P&L dashboard. This is a fast estimate only.
+const SITE_RATES = {
+  'Basatin': [
+    {re:/kerb/i, rate:11.50, unit:'Lm'},
+    {re:/grut|grout/i, rate:1.50, unit:'Lm'},
+    {re:/taile|tile/i, rate:14.50, unit:'Square'},
+  ],
+  'Innovo': [
+    {re:/kerb/i, rate:9.00, unit:'Lm'},
+    {re:/grut|grout/i, rate:9.00, unit:'Lm'}, // combined kerb+grouting rate
+    {re:/taile|tile/i, rate:10.25, unit:'Square'},
+  ],
+  '597': [
+    {re:/kerb/i, rate:18.50, unit:'Lm'},
+    {re:/grut|grout/i, rate:1.50, unit:'Lm'},
+  ],
+};
+
+function estimateRevenue(site, tasksRaw){
+  if (!tasksRaw) return {revenue:0, matched:true};
+  const rateList = SITE_RATES[site];
+  if (!rateList) return {revenue:0, matched:false};
+  const segments = tasksRaw.split(' ; ');
+  let total = 0; let allMatched = true;
+  segments.forEach(seg=>{
+    const qtyM = seg.match(/=\s*([\d]+(?:\.[\d]+)?)\.?\s*(Lm|Square)/i);
+    if (!qtyM){ allMatched = false; return; }
+    const qty = parseFloat(qtyM[1]);
+    const taskType = seg.slice(0, seg.indexOf('=')).trim();
+    const rateEntry = rateList.find(r=>r.re.test(taskType));
+    if (!rateEntry){ allMatched = false; return; }
+    total += qty * rateEntry.rate;
+  });
+  return {revenue: total, matched: allMatched};
+}
+
 function toISODate(ddmmyyyy){
   const [d,mo,y] = ddmmyyyy.split('-');
   return `${y}-${mo}-${d}`;
@@ -483,7 +523,7 @@ async function loadRecentEntries(){
   let dwRecords = [];
   if (dateList.length){
     const inList = dateList.map(d=>`"${d}"`).join(',');
-    dwRecords = await sbGet('worker_daily_records', `?select=report_date,worker_name,site,work_area,tasks_raw,ot_hours&category=eq.daily_wage&report_date=in.(${inList})`);
+    dwRecords = await sbGet('worker_daily_records', `?select=report_date,worker_name,site,work_area,tasks_raw,group_size,ot_hours&category=eq.daily_wage&report_date=in.(${inList})`);
   }
   const recordsByDate = {}; const aedByDate = {};
   dwRecords.forEach(r=>{
@@ -506,14 +546,24 @@ async function loadRecentEntries(){
     </tr>`;
     const detailRows = (recordsByDate[d.report_date]||[]).slice().sort((a,b)=>a.worker_name.localeCompare(b.worker_name));
     html += `<tr class="dateDetail" data-date-detail="${d.report_date}" style="display:none"><td></td><td colspan="5" style="padding:10px 10px 14px">
-      <table><thead><tr><th>Name</th><th>Site</th><th>Work Area</th><th>Work Done</th><th class="tr">Rate/Day</th><th class="tr">OT Hrs</th></tr></thead><tbody>
+      <table><thead><tr><th>Name</th><th>Site</th><th>Work Area</th><th>Work Done</th><th class="tr">Rate/Day</th><th class="tr">OT Hrs</th><th class="tr">Revenue (est.)*</th><th class="tr">P&amp;L (est.)*</th></tr></thead><tbody>
       ${detailRows.map(r=>{
         const w = workerInfo(r.worker_name);
         const rate = w!=null ? Number(w.rate_amount) : null;
         const otBadge = r.ot_hours ? `<span class="badge warn">${r.ot_hours}H</span>` : '—';
-        return `<tr><td class="name">${r.worker_name}</td><td>${r.site}</td><td class="mono-sm">${r.work_area||''}</td><td class="mono-sm">${r.tasks_raw||''}</td><td class="tr">${rate!=null?'AED '+rate:'<span class="badge warn">not in roster</span>'}</td><td class="tr">${otBadge}</td></tr>`;
+        const revInfo = estimateRevenue(r.site, r.tasks_raw);
+        const revShare = revInfo.revenue / (r.group_size || 1);
+        const revCell = revInfo.matched
+          ? `AED ${Math.round(revShare).toLocaleString()}`
+          : `<span class="badge warn">AED ${Math.round(revShare).toLocaleString()}~</span>`;
+        const pl = (rate!=null) ? (revShare - rate) : null;
+        const plCell = pl!=null
+          ? `<strong style="color:${pl>=0?'var(--green)':'var(--red)'}">AED ${Math.round(pl).toLocaleString()}</strong>`
+          : '—';
+        return `<tr><td class="name">${r.worker_name}</td><td>${r.site}</td><td class="mono-sm">${r.work_area||''}</td><td class="mono-sm">${r.tasks_raw||''}</td><td class="tr">${rate!=null?'AED '+rate:'<span class="badge warn">not in roster</span>'}</td><td class="tr">${otBadge}</td><td class="tr">${revCell}</td><td class="tr">${plCell}</td></tr>`;
       }).join('')}
       </tbody></table>
+      <div class="mono-sm" style="margin-top:8px">*Revenue is an estimate covering standard kerb / grouting / tile rates only, split evenly across everyone in the work group. It doesn't include cutpiece combos, date-based tile pricing, cycle track/border sub-rates, granite kerbstone, or retention — those live in the full Site P&amp;L dashboard. Rows marked <span class="badge warn">~</span> have at least one task type this estimate couldn't match to a rate.</div>
     </td></tr>`;
   });
   html += `</tbody></table></div>`;
