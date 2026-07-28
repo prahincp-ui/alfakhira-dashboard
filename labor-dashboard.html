@@ -214,23 +214,27 @@ async function sbInsert(table, rows){
   return r.json();
 }
 
-// ── PARSER (matches Billal's WhatsApp format) ──
+// ── PARSER (matches Billal's WhatsApp format, with or without
+//    [DD/MM, HH:MM] Billal AF: message markers — matches each site block
+//    to its nearest "Date:" line by proximity) ──
 function parseBillalText(raw){
-  const msgRe = /\[(\d{2}\/\d{2}), (\d{2}:\d{2})\] Billal AF: /g;
-  let matches = []; let m;
-  while ((m = msgRe.exec(raw)) !== null){
-    matches.push({index:m.index, end:msgRe.lastIndex, send_ts:m[1]+' '+m[2]});
+  const dateRe = /Date:\s*(\d{2}-\d{2}-\d{4})/g;
+  let dm; const dateMatches = [];
+  while ((dm = dateRe.exec(raw)) !== null){ dateMatches.push({date: dm[1], pos: dm.index}); }
+  if (dateMatches.length === 0){
+    return {personRows: [], attendance: [], error: 'No "Date: DD-MM-YYYY" line found in this paste. Every day\'s data needs Billal\'s date-summary block included, or there\'s nothing to date the records against.'};
   }
-  let messages = [];
-  for (let i=0;i<matches.length;i++){
-    const start = matches[i].end;
-    const end = i+1<matches.length ? matches[i+1].index : raw.length;
-    messages.push({send_ts:matches[i].send_ts, text:raw.slice(start,end).trim()});
-  }
-  const batches = {};
-  messages.forEach(msg=>{ (batches[msg.send_ts]=batches[msg.send_ts]||[]).push(msg.text); });
 
-  const records = []; const dateSummaries = [];
+  const siteRe = /📍\s*Site\s+(\w+)/g;
+  let sm; const siteMatches = [];
+  while ((sm = siteRe.exec(raw)) !== null){ siteMatches.push({site: sm[1], start: sm.index, headerEnd: siteRe.lastIndex}); }
+  siteMatches.forEach((s,i)=>{ s.end = i+1<siteMatches.length ? siteMatches[i+1].start : raw.length; });
+
+  function nearestDate(pos){
+    let best = dateMatches[0], bestDist = Math.abs(dateMatches[0].pos - pos);
+    for (const d of dateMatches){ const dist = Math.abs(d.pos - pos); if (dist < bestDist){ bestDist = dist; best = d; } }
+    return best.date;
+  }
 
   function extractWorkerBlocks(sectionText, site, category, reportDate){
     const recs = [];
@@ -269,43 +273,40 @@ function parseBillalText(raw){
     return recs;
   }
 
-  Object.keys(batches).forEach(send_ts=>{
-    const texts = batches[send_ts];
-    let report_date = null;
-    texts.forEach(t=>{ let dm = t.match(/Date:\s*(\d{2}-\d{2}-\d{4})/); if (dm) report_date = dm[1]; });
-    if (!report_date) return;
-    texts.forEach(t=>{
-      if (t.startsWith('Date:')){ dateSummaries.push({date:report_date, text:t}); return; }
-      let siteM = t.match(/Site\s+(\w+)/);
-      if (!siteM) return;
-      const site = siteM[1];
-      let coreM = t.match(/core\s*[–-]?\s*\d*P?/i);
-      let dwM = t.match(/daily\s*wage\s*[–-]?\s*\d*P?/i);
-      let core_section='', dw_section='';
-      if (coreM && dwM){
-        core_section = t.slice(coreM.index+coreM[0].length, dwM.index);
-        dw_section = t.slice(dwM.index+dwM[0].length);
-      } else if (coreM){ core_section = t.slice(coreM.index+coreM[0].length); }
-      else if (dwM){ dw_section = t.slice(dwM.index+dwM[0].length); }
-      records.push(...extractWorkerBlocks(core_section, site, 'core', report_date));
-      records.push(...extractWorkerBlocks(dw_section, site, 'daily_wage', report_date));
-    });
+  const records = [];
+  siteMatches.forEach(sBlock=>{
+    const t = raw.slice(sBlock.headerEnd, sBlock.end);
+    const report_date = nearestDate(sBlock.start);
+    const site = sBlock.site;
+    let coreM = t.match(/core\s*[–-]?\s*\d*P?/i);
+    let dwM = t.match(/daily\s*wage\s*[–-]?\s*\d*P?/i);
+    let core_section='', dw_section='';
+    if (coreM && dwM){
+      core_section = t.slice(coreM.index+coreM[0].length, dwM.index);
+      dw_section = t.slice(dwM.index+dwM[0].length);
+    } else if (coreM){ core_section = t.slice(coreM.index+coreM[0].length); }
+    else if (dwM){ dw_section = t.slice(dwM.index+dwM[0].length); }
+    records.push(...extractWorkerBlocks(core_section, site, 'core', report_date));
+    records.push(...extractWorkerBlocks(dw_section, site, 'daily_wage', report_date));
   });
 
-  const attendance = dateSummaries.map(ds=>{
-    const t = ds.text;
+  const attendance = dateMatches.map(d=>{
+    let windowEnd = raw.length;
+    const nextPinIdx = raw.indexOf('📍', d.pos);
+    if (nextPinIdx !== -1) windowEnd = nextPinIdx;
+    const t = raw.slice(d.pos, windowEnd);
     const absentM = t.match(/Absent:(.*)/);
     let absent_names = absentM ? absentM[1].split('|').map(s=>s.replace(/^\d+-/,'').trim()).filter(Boolean) : [];
     const totalM = t.match(/Total Workforce:\s*(\d+)P/i);
     const coreM = t.match(/AL Fakhira:,?\s*(\d+)P/i);
     const dwM = t.match(/\sDaily Wage:\s*(\d+)P/i);
     return {
-      report_date: ds.date,
+      report_date: d.date,
       total_workforce: totalM?parseInt(totalM[1]):null,
       core_count: coreM?parseInt(coreM[1]):null,
       daily_wage_count: dwM?parseInt(dwM[1]):null,
       absent_names,
-      raw_message: t
+      raw_message: t.trim()
     };
   });
 
@@ -354,7 +355,14 @@ document.getElementById('btnPreview').onclick = async ()=>{
   const raw = document.getElementById('rawInput').value;
   if (!raw.trim()){ setStatus('Paste a message first.', true); return; }
   if (WORKERS.length===0) await loadWorkers();
-  const {personRows, attendance} = parseBillalText(raw);
+  const parsed = parseBillalText(raw);
+  if (parsed.error){
+    document.getElementById('previewArea').innerHTML = `<div class="alert danger">${parsed.error}</div>`;
+    setStatus('Parse failed — see note above.', true);
+    document.getElementById('btnSave').disabled = true;
+    return;
+  }
+  const {personRows, attendance} = parsed;
   personRows.forEach(r=> r.worker_name = resolveName(r.worker_name));
   lastParsed = {personRows, attendance};
 
