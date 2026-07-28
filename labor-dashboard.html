@@ -358,28 +358,89 @@ document.getElementById('btnPreview').onclick = async ()=>{
   personRows.forEach(r=> r.worker_name = resolveName(r.worker_name));
   lastParsed = {personRows, attendance};
 
+  // Flag same worker appearing more than once on the same date — could be a
+  // legitimate split shift (morning at one site, afternoon at another) or a
+  // parsing duplicate. Either way, don't decide silently — ask.
+  const byWorkerDate = {};
+  personRows.forEach(r=>{
+    const key = r.report_date + '|' + r.worker_name;
+    (byWorkerDate[key] = byWorkerDate[key] || []).push(r);
+  });
+  const repeats = Object.values(byWorkerDate).filter(rows=>rows.length>1);
+
   const unknown = [...new Set(personRows.filter(r=>!workerInfo(r.worker_name)).map(r=>r.worker_name))];
   let html = `<div class="card" style="margin-bottom:14px">
     <div class="chd">Preview — ${personRows.length} person-day rows across ${attendance.length} date(s)</div>`;
   if (unknown.length){
     html += `<div class="alert warn">Not in roster yet: <strong>${unknown.join(', ')}</strong> — these will still save, but won't get an AED rate until added to the workers table.</div>`;
   }
+
+  let needsConfirm = repeats.length > 0;
+  if (repeats.length){
+    html += `<div class="alert danger"><div>
+      <strong>${repeats.length} worker(s) appear more than once on the same date</strong> — confirm each one before you can save:
+      <ul style="margin:8px 0 0 18px;line-height:1.8">`;
+    repeats.forEach(rows=>{
+      const groupKey = rows[0].report_date + '|' + rows[0].worker_name;
+      html += `<li><strong>${rows[0].worker_name}</strong> on ${rows[0].report_date}: ` +
+        rows.map(r=>`${r.site}${r.work_area?' ('+r.work_area+')':''}`).join(' + ') +
+        ` — <label style="font-weight:normal"><input type="checkbox" class="dupConfirm" data-group="${groupKey}" checked style="margin-right:4px">this is a real split shift, keep both</label></li>`;
+    });
+    html += `</ul>Uncheck any that are actually the same shift double-reported — unchecked ones will be dropped before saving.</div></div>`;
+  }
+
   html += `<table><thead><tr><th>Date</th><th>Name</th><th>Site</th><th>Category</th><th>Work Area</th><th class="tr">OT (H)</th></tr></thead><tbody>`;
-  personRows.forEach(r=>{
-    html += `<tr><td>${r.report_date}</td><td class="name">${r.worker_name}</td><td>${r.site}</td><td>${r.category==='core'?'<span class="badge info">Core</span>':'<span class="badge neutral">Daily Wage</span>'}</td><td class="mono-sm">${r.work_area||''}</td><td class="tr">${r.ot_hours ?? '—'}</td></tr>`;
+  personRows.forEach((r,i)=>{
+    const isRepeat = byWorkerDate[r.report_date+'|'+r.worker_name].length>1;
+    html += `<tr data-idx="${i}" style="${isRepeat?'background:var(--amber-bg)':''}"><td>${r.report_date}</td><td class="name">${r.worker_name}</td><td>${r.site}</td><td>${r.category==='core'?'<span class="badge info">Core</span>':'<span class="badge neutral">Daily Wage</span>'}</td><td class="mono-sm">${r.work_area||''}</td><td class="tr">${r.ot_hours ?? '—'}</td></tr>`;
   });
   html += `</tbody></table></div>`;
   document.getElementById('previewArea').innerHTML = html;
-  document.getElementById('btnSave').disabled = false;
-  setStatus(`Parsed OK — review, then Save to Tank.`, false);
+
+  if (needsConfirm){
+    document.getElementById('btnSave').disabled = true;
+    setStatus(`Review the flagged repeats above before saving.`, true);
+    document.querySelectorAll('.dupConfirm').forEach(cb=>{
+      cb.onchange = refreshDupState;
+    });
+    refreshDupState();
+  } else {
+    document.getElementById('btnSave').disabled = false;
+    setStatus(`Parsed OK — review, then Save to Tank.`, false);
+  }
 };
+
+function refreshDupState(){
+  const boxes = document.querySelectorAll('.dupConfirm');
+  const allDecided = true; // checkboxes default checked=keep; unchecked=drop, either state is a decision
+  document.getElementById('btnSave').disabled = false;
+  setStatus(`Reviewed — unchecked repeats will be dropped on save.`, false);
+}
 
 document.getElementById('btnSave').onclick = async ()=>{
   if (!lastParsed){ return; }
   setStatus('Saving...', false);
   try{
-    if (lastParsed.personRows.length){
-      await sbUpsert('worker_daily_records', lastParsed.personRows, 'report_date,worker_name,site,work_area');
+    // Apply duplicate-shift decisions: for any group left unchecked, the
+    // person insisted it's a double-report of the same shift, not a real
+    // split — keep only the first occurrence, drop the rest.
+    const dropGroups = new Set();
+    document.querySelectorAll('.dupConfirm').forEach(cb=>{
+      if (!cb.checked) dropGroups.add(cb.dataset.group);
+    });
+    let rowsToSave = lastParsed.personRows;
+    if (dropGroups.size){
+      const seen = new Set();
+      rowsToSave = lastParsed.personRows.filter(r=>{
+        const key = r.report_date + '|' + r.worker_name;
+        if (!dropGroups.has(key)) return true;
+        if (seen.has(key)) return false; // drop every occurrence after the first
+        seen.add(key);
+        return true;
+      });
+    }
+    if (rowsToSave.length){
+      await sbUpsert('worker_daily_records', rowsToSave, 'report_date,worker_name,site,work_area');
     }
     if (lastParsed.attendance.length){
       const attRows = lastParsed.attendance.map(a=>({
@@ -388,7 +449,7 @@ document.getElementById('btnSave').onclick = async ()=>{
       }));
       await sbUpsert('daily_attendance', attRows, 'report_date');
     }
-    setStatus(`Saved: ${lastParsed.personRows.length} records, ${lastParsed.attendance.length} date(s).`, false);
+    setStatus(`Saved: ${rowsToSave.length} records, ${lastParsed.attendance.length} date(s).`, false);
     document.getElementById('rawInput').value = '';
     document.getElementById('previewArea').innerHTML = '';
     document.getElementById('btnSave').disabled = true;
