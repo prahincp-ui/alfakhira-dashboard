@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Al Fakhira — Daily Wage Records</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0f0e0c;--ink2:#4a4840;--ink3:#8a8680;
+  --paper:#f5f3ee;--surface:#fff;--surface2:#eeece6;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --gold:#c49a2a;--gold-bg:#faf5e4;
+  --green:#2d6a3f;--green-bg:#e8f5ec;--green-mid:#3d9954;
+  --red:#8b2020;--red-bg:#fceaea;--red-mid:#c94040;
+  --blue:#1a4f8a;--blue-bg:#e8f0fb;--blue-mid:#2d6cc4;
+  --amber:#7a4f10;--amber-bg:#fdf3e0;--amber-mid:#c4820d;
+  --teal:#0d5c52;--teal-bg:#e4f4f1;--teal-mid:#1a9080;
+  --purple:#3d2a9a;--purple-bg:#ede8fb;
+  --r:8px;--rs:4px;
+}
+body{font-family:'DM Mono',monospace;background:var(--paper);color:var(--ink);font-size:13px;min-height:100vh}
+.hdr{background:var(--ink);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.hbr{display:flex;align-items:center;gap:14px}
+.hmk{width:40px;height:40px;border:1.5px solid var(--gold);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:16px;color:var(--gold);font-weight:600}
+.htx h1{font-family:'Fraunces',serif;font-size:15px;font-weight:300;color:#f5f3ee;letter-spacing:.3px}
+.htx p{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.hmt{display:flex;gap:8px;align-items:center}
+.chip{background:rgba(255,255,255,.07);border:.5px solid rgba(255,255,255,.12);border-radius:3px;padding:4px 9px;font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.5px}
+.chip.live{color:var(--gold);border-color:rgba(196,154,42,.4);background:rgba(196,154,42,.08)}
+.chip.db{color:#6ecf8a;border-color:rgba(110,207,138,.4);background:rgba(110,207,138,.08)}
+.nav{background:var(--surface);border-bottom:.5px solid var(--border2);display:flex;overflow-x:auto;padding:0 24px}
+.nb{padding:12px 16px;font-size:10px;font-family:'DM Mono',monospace;color:var(--ink3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;letter-spacing:1px;text-transform:uppercase;transition:color .15s}
+.nb:hover{color:var(--ink)}.nb.active{color:var(--ink);border-bottom-color:var(--gold)}
+.main{padding:20px 24px;max-width:1280px;margin:0 auto}
+.sec{display:none}.sec.active{display:block}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:14px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;margin-bottom:14px}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:18px}
+.chd{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;font-weight:500}
+.kpi{background:var(--surface2);border-radius:var(--rs);padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--ka,var(--ink3))}
+.kl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.kv{font-family:'Fraunces',serif;font-size:26px;font-weight:600;line-height:1;color:var(--kc,var(--ink))}
+.ks{font-size:10px;color:var(--ink3);margin-top:5px}
+.kpi.profit{--ka:var(--green-mid);--kc:var(--green)}
+.kpi.loss{--ka:var(--red-mid);--kc:var(--red)}
+.kpi.gold{--ka:var(--gold);--kc:var(--amber)}
+.kpi.blue{--ka:var(--blue-mid);--kc:var(--blue)}
+.kpi.teal{--ka:var(--teal-mid);--kc:var(--teal)}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;font-size:10px}
+.badge.profit{background:var(--green-bg);color:var(--green)}
+.badge.loss{background:var(--red-bg);color:var(--red)}
+.badge.warn{background:var(--amber-bg);color:var(--amber)}
+.badge.info{background:var(--blue-bg);color:var(--blue)}
+.badge.neutral{background:var(--surface2);color:var(--ink2);border:.5px solid var(--border)}
+.badge.teal{background:var(--teal-bg);color:var(--teal)}
+.alert{display:flex;gap:10px;padding:10px 13px;border-radius:var(--rs);margin-bottom:8px;font-size:11px;line-height:1.6}
+.alert.warn{background:var(--amber-bg);border-left:3px solid var(--amber-mid)}
+.alert.info{background:var(--blue-bg);border-left:3px solid var(--blue-mid)}
+.alert.danger{background:var(--red-bg);border-left:3px solid var(--red-mid)}
+.alert.ok{background:var(--green-bg);border-left:3px solid var(--green-mid)}
+table{width:100%;border-collapse:collapse}
+th{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);padding:6px 10px;border-bottom:.5px solid var(--border2);text-align:left;font-weight:500;cursor:pointer;white-space:nowrap}
+th:hover{color:var(--ink)}
+td{padding:8px 10px;border-bottom:.5px solid var(--border);font-size:12px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+.tr{text-align:right}
+textarea{width:100%;min-height:220px;font-family:'DM Mono',monospace;font-size:11px;padding:12px;border:.5px solid var(--border2);border-radius:var(--rs);background:var(--paper);color:var(--ink);resize:vertical}
+input,select{font-family:'DM Mono',monospace;font-size:12px;padding:7px 9px;border:.5px solid var(--border2);border-radius:var(--rs);background:var(--paper);color:var(--ink)}
+button.btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.5px;text-transform:uppercase;padding:9px 16px;border-radius:var(--rs);border:.5px solid var(--border2);background:var(--ink);color:#f5f3ee;cursor:pointer;transition:opacity .15s}
+button.btn:hover{opacity:.85}
+button.btn.ghost{background:var(--surface);color:var(--ink);border:.5px solid var(--border2)}
+button.btn.gold{background:var(--gold);color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3)}
+.name{font-family:'DM Sans',sans-serif;font-weight:500}
+.mono-sm{font-size:11px;color:var(--ink3)}
+.section-title{font-family:'Fraunces',serif;font-size:18px;font-weight:500;margin-bottom:4px}
+.section-sub{font-size:11px;color:var(--ink3);margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hbr">
+    <div class="hmk">AF</div>
+    <div class="htx"><h1>Daily Wage Records</h1><p>Al Fakhira — Labor Tank</p></div>
+  </div>
+  <div class="hmt">
+    <span class="chip db" id="dbChip">DB: checking...</span>
+    <span class="chip">v1</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nb active" data-tab="entry">Daily Entry</button>
+  <button class="nb" data-tab="ledger">Ledger &amp; Balances</button>
+  <button class="nb" data-tab="efficiency">Efficiency</button>
+</div>
+
+<div class="main">
+
+  <!-- ============ DAILY ENTRY ============ -->
+  <section class="sec active" id="sec-entry">
+    <div class="section-title">Feed the tank</div>
+    <div class="section-sub">Paste Billal's WhatsApp message(s) exactly as copied — one date's worth or several days at once. This writes to the shared tank used by all dashboards.</div>
+    <div class="card" style="margin-bottom:14px">
+      <textarea id="rawInput" placeholder="Paste Billal's WhatsApp message(s) here..."></textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="btn ghost" id="btnPreview">Parse Preview</button>
+        <button class="btn gold" id="btnSave" disabled>Save to Tank</button>
+        <span id="parseStatus" class="mono-sm"></span>
+      </div>
+    </div>
+    <div id="previewArea"></div>
+    <div id="recentEntries"></div>
+  </section>
+
+  <!-- ============ LEDGER & BALANCES ============ -->
+  <section class="sec" id="sec-ledger">
+    <div class="section-title">Ledger &amp; Balances</div>
+    <div class="section-sub">What each daily-wage worker has earned vs. what's been paid, based on what you've fed the tank — no waiting on a weekly summary.</div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="chd">Date range</div>
+      <div class="row">
+        <div class="fld"><label>From</label><input type="date" id="ledgerFrom"></div>
+        <div class="fld"><label>To</label><input type="date" id="ledgerTo"></div>
+        <button class="btn ghost" id="btnLedgerRefresh" style="align-self:flex-end">Refresh</button>
+      </div>
+    </div>
+
+    <div id="unallocatedWarning"></div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="chd">Log a payment</div>
+      <div class="row">
+        <div class="fld"><label>Date</label><input type="date" id="payDate"></div>
+        <div class="fld"><label>Worker</label><select id="payWorker"><option value="">Unallocated / bulk</option></select></div>
+        <div class="fld"><label>Amount (AED)</label><input type="number" id="payAmount" placeholder="0"></div>
+        <div class="fld"><label>Paid by</label><select id="payBy"><option>Yadav</option><option>Madassar</option><option>Other</option></select></div>
+        <div class="fld"><label>Notes</label><input type="text" id="payNotes" placeholder="optional"></div>
+        <button class="btn gold" id="btnLogPayment" style="align-self:flex-end">Log Payment</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="chd">Balances</div>
+      <table id="balanceTable">
+        <thead><tr>
+          <th data-sort="worker_name">Name</th><th data-sort="days">Days Worked</th>
+          <th data-sort="rate" class="tr">Rate/Day</th><th data-sort="earned" class="tr">Earned</th>
+          <th data-sort="ot" class="tr">OT Hours*</th><th data-sort="paid" class="tr">Paid</th>
+          <th data-sort="balance" class="tr">Balance</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="mono-sm" style="margin-top:10px">*OT hours logged but not yet priced into AED — pending your confirmation on the overtime rate formula.</div>
+    </div>
+  </section>
+
+  <!-- ============ EFFICIENCY ============ -->
+  <section class="sec" id="sec-efficiency">
+    <div class="section-title">Efficiency</div>
+    <div class="section-sub">Who's showing up and putting in the hours. Ranked by days worked and overtime frequency — a signal for who to prioritize during a shortage.</div>
+    <div class="card">
+      <table id="efficiencyTable">
+        <thead><tr>
+          <th data-sort="worker_name">Name</th><th data-sort="days">Days Worked</th>
+          <th data-sort="ot_days" class="tr">Days with OT</th><th data-sort="ot_total" class="tr">Total OT Hrs</th>
+          <th>Sites Worked</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ── SUPABASE CONFIG (shared tank, same project as P&L dashboard) ──
+const SB_URL = 'https://wogxdtklsyopkalncpsb.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvZ3hkdGtsc3lvcGthbG5jcHNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDM5ODgsImV4cCI6MjA5NDQxOTk4OH0.vyBWzc00nK7Mp95zeN14zy2dCrlIQrcbTKXXFEV9DQk';
+const HDRS = {
+  'apikey': SB_ANON,
+  'Authorization': 'Bearer ' + SB_ANON,
+  'Content-Type': 'application/json',
+  'x-client-info': 'supabase-js/2.0.0'
+};
+
+async function sbGet(table, query=''){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}${query}`, { headers: HDRS });
+  if(!r.ok) throw new Error(`GET ${table} failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+async function sbUpsert(table, rows, onConflict){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
+    method:'POST', headers: {...HDRS, 'Prefer':'resolution=merge-duplicates,return=representation'},
+    body: JSON.stringify(rows)
+  });
+  if(!r.ok) throw new Error(`Upsert ${table} failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+async function sbInsert(table, rows){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method:'POST', headers: {...HDRS, 'Prefer':'return=representation'},
+    body: JSON.stringify(rows)
+  });
+  if(!r.ok) throw new Error(`Insert ${table} failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+// ── PARSER (matches Billal's WhatsApp format) ──
+function parseBillalText(raw){
+  const msgRe = /\[(\d{2}\/\d{2}), (\d{2}:\d{2})\] Billal AF: /g;
+  let matches = []; let m;
+  while ((m = msgRe.exec(raw)) !== null){
+    matches.push({index:m.index, end:msgRe.lastIndex, send_ts:m[1]+' '+m[2]});
+  }
+  let messages = [];
+  for (let i=0;i<matches.length;i++){
+    const start = matches[i].end;
+    const end = i+1<matches.length ? matches[i+1].index : raw.length;
+    messages.push({send_ts:matches[i].send_ts, text:raw.slice(start,end).trim()});
+  }
+  const batches = {};
+  messages.forEach(msg=>{ (batches[msg.send_ts]=batches[msg.send_ts]||[]).push(msg.text); });
+
+  const records = []; const dateSummaries = [];
+
+  function extractWorkerBlocks(sectionText, site, category, reportDate){
+    const recs = [];
+    const parts = sectionText.split(/^\.?\s*workers\s*:?\s*(?=\S)/im);
+    for (let i=1;i<parts.length;i++){
+      let part = parts[i].trim();
+      if (!part) continue;
+      let names_raw, rest;
+      let m1 = part.match(/^(.*?)\((\d+)P\)/);
+      if (m1){ names_raw = m1[1]; rest = part.slice(m1[0].length); }
+      else {
+        const firstline = part.split('\n')[0];
+        let m2 = firstline.match(/^(.*?)\((\d+)P\)/);
+        if (m2){ names_raw = m2[1]; rest = part.slice(firstline.length); }
+        else { names_raw = firstline; rest = part.split('\n').slice(1).join('\n'); }
+      }
+      let names = names_raw.split(/[.,]/).map(n=>n.trim().replace(/\.$/,'').trim()).filter(n=>n && n.replace(/[.\s]/g,'')!=='');
+      let waMatch = rest.match(/work\s*ar[er]a\s*:?\s*(.*)/i);
+      let work_area = waMatch ? waMatch[1].trim() : '';
+      let otMatch = rest.match(/over\s*time\s*=\s*([\d.]+)\s*H/i);
+      let ot_hours = otMatch ? parseFloat(otMatch[1]) : null;
+      let task_lines = []; let total_hours = 0;
+      rest.split('\n').forEach(line=>{
+        line = line.trim();
+        if (!line) return;
+        if (/^work\s*ar[er]a/i.test(line)) return;
+        if (/over\s*time/i.test(line)) return;
+        if (line.includes('=') || /Lm/.test(line) || /square/i.test(line)){
+          task_lines.push(line);
+          let hm = line.match(/\|\s*([\d.]+)\s*H/);
+          if (hm) total_hours += parseFloat(hm[1]);
+        }
+      });
+      recs.push({date:reportDate, site, category, names, work_area, tasks:task_lines.join(' ; '), reported_hours: total_hours||null, ot_hours});
+    }
+    return recs;
+  }
+
+  Object.keys(batches).forEach(send_ts=>{
+    const texts = batches[send_ts];
+    let report_date = null;
+    texts.forEach(t=>{ let dm = t.match(/Date:\s*(\d{2}-\d{2}-\d{4})/); if (dm) report_date = dm[1]; });
+    if (!report_date) return;
+    texts.forEach(t=>{
+      if (t.startsWith('Date:')){ dateSummaries.push({date:report_date, text:t}); return; }
+      let siteM = t.match(/Site\s+(\w+)/);
+      if (!siteM) return;
+      const site = siteM[1];
+      let coreM = t.match(/core\s*[–-]?\s*\d*P?/i);
+      let dwM = t.match(/daily\s*wage\s*[–-]?\s*\d*P?/i);
+      let core_section='', dw_section='';
+      if (coreM && dwM){
+        core_section = t.slice(coreM.index+coreM[0].length, dwM.index);
+        dw_section = t.slice(dwM.index+dwM[0].length);
+      } else if (coreM){ core_section = t.slice(coreM.index+coreM[0].length); }
+      else if (dwM){ dw_section = t.slice(dwM.index+dwM[0].length); }
+      records.push(...extractWorkerBlocks(core_section, site, 'core', report_date));
+      records.push(...extractWorkerBlocks(dw_section, site, 'daily_wage', report_date));
+    });
+  });
+
+  const attendance = dateSummaries.map(ds=>{
+    const t = ds.text;
+    const absentM = t.match(/Absent:(.*)/);
+    let absent_names = absentM ? absentM[1].split('|').map(s=>s.replace(/^\d+-/,'').trim()).filter(Boolean) : [];
+    const totalM = t.match(/Total Workforce:\s*(\d+)P/i);
+    const coreM = t.match(/AL Fakhira:,?\s*(\d+)P/i);
+    const dwM = t.match(/\sDaily Wage:\s*(\d+)P/i);
+    return {
+      report_date: ds.date,
+      total_workforce: totalM?parseInt(totalM[1]):null,
+      core_count: coreM?parseInt(coreM[1]):null,
+      daily_wage_count: dwM?parseInt(dwM[1]):null,
+      absent_names,
+      raw_message: t
+    };
+  });
+
+  const personRows = [];
+  records.forEach(r=>{
+    r.names.forEach(name=>{
+      personRows.push({
+        report_date: toISODate(r.date), worker_name: name, site: r.site, category: r.category,
+        work_area: r.work_area || null, tasks_raw: r.tasks || null, group_size: r.names.length,
+        reported_hours: r.reported_hours, ot_hours: r.ot_hours, source_message: r.tasks || null
+      });
+    });
+  });
+  return {personRows, attendance};
+}
+
+function toISODate(ddmmyyyy){
+  const [d,mo,y] = ddmmyyyy.split('-');
+  return `${y}-${mo}-${d}`;
+}
+
+// ── WORKER ROSTER (canonical names + rates, cached) ──
+let WORKERS = []; // {name, aliases, category, rate_amount, rate_unit}
+let ALIAS_MAP = {}; // lowercase alias/name -> canonical name
+
+async function loadWorkers(){
+  WORKERS = await sbGet('workers', '?select=name,aliases,category,rate_amount,rate_unit&active=eq.true');
+  ALIAS_MAP = {};
+  WORKERS.forEach(w=>{
+    ALIAS_MAP[w.name.toLowerCase()] = w.name;
+    (w.aliases||[]).forEach(a=> ALIAS_MAP[a.toLowerCase()] = w.name);
+  });
+}
+function resolveName(raw){
+  const key = raw.trim().toLowerCase();
+  return ALIAS_MAP[key] || raw.trim();
+}
+function workerInfo(name){
+  return WORKERS.find(w=>w.name === name);
+}
+
+// ── DAILY ENTRY TAB ──
+let lastParsed = null;
+
+document.getElementById('btnPreview').onclick = async ()=>{
+  const raw = document.getElementById('rawInput').value;
+  if (!raw.trim()){ setStatus('Paste a message first.', true); return; }
+  if (WORKERS.length===0) await loadWorkers();
+  const {personRows, attendance} = parseBillalText(raw);
+  personRows.forEach(r=> r.worker_name = resolveName(r.worker_name));
+  lastParsed = {personRows, attendance};
+
+  const unknown = [...new Set(personRows.filter(r=>!workerInfo(r.worker_name)).map(r=>r.worker_name))];
+  let html = `<div class="card" style="margin-bottom:14px">
+    <div class="chd">Preview — ${personRows.length} person-day rows across ${attendance.length} date(s)</div>`;
+  if (unknown.length){
+    html += `<div class="alert warn">Not in roster yet: <strong>${unknown.join(', ')}</strong> — these will still save, but won't get an AED rate until added to the workers table.</div>`;
+  }
+  html += `<table><thead><tr><th>Date</th><th>Name</th><th>Site</th><th>Category</th><th>Work Area</th><th class="tr">OT (H)</th></tr></thead><tbody>`;
+  personRows.forEach(r=>{
+    html += `<tr><td>${r.report_date}</td><td class="name">${r.worker_name}</td><td>${r.site}</td><td>${r.category==='core'?'<span class="badge info">Core</span>':'<span class="badge neutral">Daily Wage</span>'}</td><td class="mono-sm">${r.work_area||''}</td><td class="tr">${r.ot_hours ?? '—'}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  document.getElementById('previewArea').innerHTML = html;
+  document.getElementById('btnSave').disabled = false;
+  setStatus(`Parsed OK — review, then Save to Tank.`, false);
+};
+
+document.getElementById('btnSave').onclick = async ()=>{
+  if (!lastParsed){ return; }
+  setStatus('Saving...', false);
+  try{
+    if (lastParsed.personRows.length){
+      await sbUpsert('worker_daily_records', lastParsed.personRows, 'report_date,worker_name,site,work_area');
+    }
+    if (lastParsed.attendance.length){
+      const attRows = lastParsed.attendance.map(a=>({
+        report_date: toISODate(a.report_date), total_workforce:a.total_workforce, core_count:a.core_count,
+        daily_wage_count:a.daily_wage_count, absent_names:a.absent_names, raw_message:a.raw_message
+      }));
+      await sbUpsert('daily_attendance', attRows, 'report_date');
+    }
+    setStatus(`Saved: ${lastParsed.personRows.length} records, ${lastParsed.attendance.length} date(s).`, false);
+    document.getElementById('rawInput').value = '';
+    document.getElementById('previewArea').innerHTML = '';
+    document.getElementById('btnSave').disabled = true;
+    loadRecentEntries();
+  }catch(e){
+    setStatus('Save failed: ' + e.message, true);
+  }
+};
+
+function setStatus(msg, isError){
+  const el = document.getElementById('parseStatus');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--green)';
+}
+
+async function loadRecentEntries(){
+  const rows = await sbGet('worker_daily_records', '?select=report_date&order=report_date.desc&limit=1');
+  if (!rows.length) return;
+  const dates = await sbGet('daily_attendance', '?select=report_date,total_workforce,core_count,daily_wage_count&order=report_date.desc&limit=7');
+  let html = `<div class="card"><div class="chd">Recently logged dates</div><table><thead><tr><th>Date</th><th class="tr">Total</th><th class="tr">Core</th><th class="tr">Daily Wage</th></tr></thead><tbody>`;
+  dates.forEach(d=>{
+    html += `<tr><td>${d.report_date}</td><td class="tr">${d.total_workforce??''}</td><td class="tr">${d.core_count??''}</td><td class="tr">${d.daily_wage_count??''}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  document.getElementById('recentEntries').innerHTML = html;
+}
+
+// ── LEDGER & BALANCES TAB ──
+async function populatePayWorkerDropdown(){
+  if (WORKERS.length===0) await loadWorkers();
+  const sel = document.getElementById('payWorker');
+  sel.innerHTML = '<option value="">Unallocated / bulk</option>';
+  WORKERS.filter(w=>w.category==='daily_wage').sort((a,b)=>a.name.localeCompare(b.name)).forEach(w=>{
+    sel.innerHTML += `<option value="${w.name}">${w.name}</option>`;
+  });
+}
+
+document.getElementById('btnLogPayment').onclick = async ()=>{
+  const date = document.getElementById('payDate').value;
+  const worker = document.getElementById('payWorker').value || null;
+  const amount = parseFloat(document.getElementById('payAmount').value);
+  const paid_by = document.getElementById('payBy').value;
+  const notes = document.getElementById('payNotes').value || null;
+  if (!date || !amount){ alert('Date and amount are required.'); return; }
+  await sbInsert('payments', [{payment_date:date, worker_name:worker, amount, paid_by, notes}]);
+  document.getElementById('payAmount').value = '';
+  document.getElementById('payNotes').value = '';
+  loadLedger();
+};
+
+document.getElementById('btnLedgerRefresh').onclick = loadLedger;
+
+async function loadLedger(){
+  if (WORKERS.length===0) await loadWorkers();
+  const from = document.getElementById('ledgerFrom').value;
+  const to = document.getElementById('ledgerTo').value;
+  let q = `?select=report_date,worker_name,category&category=eq.daily_wage`;
+  if (from) q += `&report_date=gte.${from}`;
+  if (to) q += `&report_date=lte.${to}`;
+  const records = await sbGet('worker_daily_records', q);
+
+  // distinct days per worker
+  const daysByWorker = {};
+  records.forEach(r=>{
+    daysByWorker[r.worker_name] = daysByWorker[r.worker_name] || new Set();
+    daysByWorker[r.worker_name].add(r.report_date);
+  });
+
+  let payQ = `?select=worker_name,amount,payment_date`;
+  if (from) payQ += `&payment_date=gte.${from}`;
+  if (to) payQ += `&payment_date=lte.${to}`;
+  const payments = await sbGet('payments', payQ);
+  const paidByWorker = {};
+  let unallocatedTotal = 0;
+  payments.forEach(p=>{
+    if (p.worker_name){ paidByWorker[p.worker_name] = (paidByWorker[p.worker_name]||0) + Number(p.amount); }
+    else { unallocatedTotal += Number(p.amount); }
+  });
+
+  const warnEl = document.getElementById('unallocatedWarning');
+  warnEl.innerHTML = unallocatedTotal>0
+    ? `<div class="alert warn">AED ${unallocatedTotal.toLocaleString()} logged as unallocated / bulk payments in this range — not yet assigned to individual workers.</div>`
+    : '';
+
+  const names = Object.keys(daysByWorker);
+  const rows = names.map(name=>{
+    const w = workerInfo(name);
+    const rate = w ? Number(w.rate_amount) : null;
+    const days = daysByWorker[name].size;
+    const earned = rate ? rate*days : null;
+    const paid = paidByWorker[name] || 0;
+    const balance = earned!==null ? earned-paid : null;
+    const otTotal = records.filter(r=>r.worker_name===name).length; // placeholder count; OT hours summed below
+    return {worker_name:name, days, rate, earned, paid, balance};
+  });
+  renderSortableTable('balanceTable', rows, [
+    {k:'worker_name', render:v=>`<span class="name">${v}</span>`},
+    {k:'days'},
+    {k:'rate', tr:true, render:v=>v!=null?`AED ${v}`:'<span class="badge warn">not in roster</span>'},
+    {k:'earned', tr:true, render:v=>v!=null?`AED ${v.toLocaleString()}`:'—'},
+    {k:'ot', tr:true, render:()=>'—'},
+    {k:'paid', tr:true, render:v=>`AED ${v.toLocaleString()}`},
+    {k:'balance', tr:true, render:(v)=>v!=null?`<strong style="color:${v>0?'var(--red)':'var(--green)'}">AED ${v.toLocaleString()}</strong>`:'—'},
+  ]);
+}
+
+// ── EFFICIENCY TAB ──
+async function loadEfficiency(){
+  const records = await sbGet('worker_daily_records', '?select=report_date,worker_name,site,category,ot_hours&category=eq.daily_wage');
+  const byWorker = {};
+  records.forEach(r=>{
+    byWorker[r.worker_name] = byWorker[r.worker_name] || {days:new Set(), ot_days:0, ot_total:0, sites:new Set()};
+    byWorker[r.worker_name].days.add(r.report_date);
+    byWorker[r.worker_name].sites.add(r.site);
+    if (r.ot_hours){ byWorker[r.worker_name].ot_days += 1; byWorker[r.worker_name].ot_total += Number(r.ot_hours); }
+  });
+  const rows = Object.keys(byWorker).map(name=>({
+    worker_name:name, days:byWorker[name].days.size, ot_days:byWorker[name].ot_days,
+    ot_total:byWorker[name].ot_total, sites: [...byWorker[name].sites].join(', ')
+  }));
+  renderSortableTable('efficiencyTable', rows, [
+    {k:'worker_name', render:v=>`<span class="name">${v}</span>`},
+    {k:'days'},
+    {k:'ot_days', tr:true},
+    {k:'ot_total', tr:true},
+    {k:'sites', render:v=>`<span class="mono-sm">${v}</span>`},
+  ]);
+}
+
+// ── generic sortable table renderer ──
+function renderSortableTable(tableId, rows, cols){
+  const table = document.getElementById(tableId);
+  let sortKey = table.dataset.sortKey || cols[0].k;
+  let sortDir = table.dataset.sortDir || 'asc';
+  table.dataset.sortKey = sortKey; table.dataset.sortDir = sortDir;
+
+  function draw(){
+    const sorted = [...rows].sort((a,b)=>{
+      let av=a[sortKey], bv=b[sortKey];
+      if (av==null) av = -Infinity; if (bv==null) bv = -Infinity;
+      if (typeof av==='string') return sortDir==='asc'? av.localeCompare(bv) : bv.localeCompare(av);
+      return sortDir==='asc'? av-bv : bv-av;
+    });
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = sorted.map(row=>{
+      return '<tr>' + cols.map(c=>{
+        const val = row[c.k];
+        const content = c.render ? c.render(val) : (val ?? '');
+        return `<td class="${c.tr?'tr':''}">${content}</td>`;
+      }).join('') + '</tr>';
+    }).join('');
+  }
+  table.querySelectorAll('th').forEach(th=>{
+    th.onclick = ()=>{
+      const key = th.dataset.sort;
+      if (!key) return;
+      if (table.dataset.sortKey===key){ table.dataset.sortDir = table.dataset.sortDir==='asc'?'desc':'asc'; }
+      else { table.dataset.sortKey = key; table.dataset.sortDir='asc'; }
+      sortKey = table.dataset.sortKey; sortDir = table.dataset.sortDir;
+      draw();
+    };
+  });
+  draw();
+}
+
+// ── NAV ──
+document.querySelectorAll('.nb').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sec-'+btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab==='ledger') loadLedger();
+    if (btn.dataset.tab==='efficiency') loadEfficiency();
+  };
+});
+
+// ── INIT ──
+(async function init(){
+  try{
+    await sbGet('workers', '?select=name&limit=1');
+    document.getElementById('dbChip').textContent = 'DB: connected';
+    document.getElementById('dbChip').classList.add('live');
+  }catch(e){
+    document.getElementById('dbChip').textContent = 'DB: error';
+  }
+  await loadWorkers();
+  await populatePayWorkerDropdown();
+  await loadRecentEntries();
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('payDate').value = today;
+  const twoWeeksAgo = new Date(Date.now()-13*86400000).toISOString().slice(0,10);
+  document.getElementById('ledgerFrom').value = twoWeeksAgo;
+  document.getElementById('ledgerTo').value = today;
+})();
+</script>
+</body></html>
