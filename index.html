@@ -3042,6 +3042,218 @@ async function loadDayDetail(dateStr){
 }
 
 // ── PARSE & SAVE ──
+// ── PARSER (matches Billal's WhatsApp format, with or without
+//    [DD/MM, HH:MM] Billal AF: message markers — matches each site block
+//    to its nearest "Date:" line by proximity) ──
+function parseBillalText(raw){
+  const dateRe = /Date:\s*(\d{2}-\d{2}-\d{4})/g;
+  let dm; const dateMatches = [];
+  while ((dm = dateRe.exec(raw)) !== null){ dateMatches.push({date: dm[1], pos: dm.index}); }
+  if (dateMatches.length === 0){
+    return {personRows: [], attendance: [], error: 'No "Date: DD-MM-YYYY" line found in this paste. Every day\'s data needs Billal\'s date-summary block included, or there\'s nothing to date the records against.'};
+  }
+
+  const siteRe = /📍\s*Site\s+(\w+)/g;
+  let sm; const siteMatches = [];
+  while ((sm = siteRe.exec(raw)) !== null){ siteMatches.push({site: sm[1], start: sm.index, headerEnd: siteRe.lastIndex}); }
+  siteMatches.forEach((s,i)=>{ s.end = i+1<siteMatches.length ? siteMatches[i+1].start : raw.length; });
+
+  function nearestDate(pos){
+    let best = dateMatches[0], bestDist = Math.abs(dateMatches[0].pos - pos);
+    for (const d of dateMatches){ const dist = Math.abs(d.pos - pos); if (dist < bestDist){ bestDist = dist; best = d; } }
+    return best.date;
+  }
+
+  function extractWorkerBlocks(sectionText, site, category, reportDate){
+    const recs = [];
+    const parts = sectionText.split(/^\.?\s*workers\s*:?\s*(?=\S)/im);
+    for (let i=1;i<parts.length;i++){
+      let part = parts[i].trim();
+      if (!part) continue;
+      let names_raw, rest;
+      let m1 = part.match(/^(.*?)\((\d+)P\)/);
+      if (m1){ names_raw = m1[1]; rest = part.slice(m1[0].length); }
+      else {
+        const firstline = part.split('\n')[0];
+        let m2 = firstline.match(/^(.*?)\((\d+)P\)/);
+        if (m2){ names_raw = m2[1]; rest = part.slice(firstline.length); }
+        else { names_raw = firstline; rest = part.split('\n').slice(1).join('\n'); }
+      }
+      let names = names_raw.split(/[.,]/).map(n=>n.trim().replace(/\.$/,'').trim()).filter(n=>n && n.replace(/[.\s]/g,'')!=='');
+      let waMatch = rest.match(/work\s*ar[er]a\s*:?\s*(.*)/i);
+      let work_area = waMatch ? waMatch[1].trim() : '';
+      let otMatch = rest.match(/over\s*time\s*=\s*([\d.]+)\s*H/i);
+      let ot_hours = otMatch ? parseFloat(otMatch[1]) : null;
+      let task_lines = []; let total_hours = 0;
+      rest.split('\n').forEach(line=>{
+        line = line.trim();
+        if (!line) return;
+        if (/^work\s*ar[er]a/i.test(line)) return;
+        if (/over\s*time/i.test(line)) return;
+        if (line.includes('=') || /Lm/.test(line) || /square/i.test(line)){
+          task_lines.push(line);
+          let hm = line.match(/\|\s*([\d.]+)\s*H/);
+          if (hm) total_hours += parseFloat(hm[1]);
+        }
+      });
+      recs.push({date:reportDate, site, category, names, work_area, tasks:task_lines.join(' ; '), reported_hours: total_hours||null, ot_hours});
+    }
+    return recs;
+  }
+
+  const records = [];
+  siteMatches.forEach(sBlock=>{
+    const t = raw.slice(sBlock.headerEnd, sBlock.end);
+    const report_date = nearestDate(sBlock.start);
+    const site = sBlock.site;
+    let coreM = t.match(/core\s*[–-]?\s*\d*P?/i);
+    let dwM = t.match(/daily\s*wage\s*[–-]?\s*\d*P?/i);
+    let core_section='', dw_section='';
+    if (coreM && dwM){
+      core_section = t.slice(coreM.index+coreM[0].length, dwM.index);
+      dw_section = t.slice(dwM.index+dwM[0].length);
+    } else if (coreM){ core_section = t.slice(coreM.index+coreM[0].length); }
+    else if (dwM){ dw_section = t.slice(dwM.index+dwM[0].length); }
+    records.push(...extractWorkerBlocks(core_section, site, 'core', report_date));
+    records.push(...extractWorkerBlocks(dw_section, site, 'daily_wage', report_date));
+  });
+
+  const attendance = dateMatches.map(d=>{
+    let windowEnd = raw.length;
+    const nextPinIdx = raw.indexOf('📍', d.pos);
+    if (nextPinIdx !== -1) windowEnd = nextPinIdx;
+    const t = raw.slice(d.pos, windowEnd);
+    const absentM = t.match(/Absent:(.*)/);
+    let absent_names = absentM ? absentM[1].split('|').map(s=>s.replace(/^\d+-/,'').trim()).filter(Boolean) : [];
+    const totalM = t.match(/Total Workforce:\s*(\d+)P/i);
+    const coreM = t.match(/AL Fakhira:,?\s*(\d+)P/i);
+    const dwM = t.match(/\sDaily Wage:\s*(\d+)P/i);
+    return {
+      report_date: d.date,
+      total_workforce: totalM?parseInt(totalM[1]):null,
+      core_count: coreM?parseInt(coreM[1]):null,
+      daily_wage_count: dwM?parseInt(dwM[1]):null,
+      absent_names,
+      raw_message: t.trim()
+    };
+  });
+
+  const personRows = [];
+  records.forEach(r=>{
+    r.names.forEach(name=>{
+      personRows.push({
+        report_date: toISODate(r.date), worker_name: name, site: r.site, category: r.category,
+        work_area: r.work_area || null, tasks_raw: r.tasks || null, group_size: r.names.length,
+        reported_hours: r.reported_hours, ot_hours: r.ot_hours, source_message: r.tasks || null
+      });
+    });
+  });
+  return {personRows, attendance};
+}
+
+// ── SIMPLIFIED SITE RATES for per-person revenue estimate ──
+// Covers the common task types only (kerb, grouting, tile/border). Special
+// variants — cutpiece combos, date-based tile rates, cycle track, border
+// sub-rates, granite kerbstone, retention — are NOT applied here; that full
+// logic lives in the Site P&L dashboard. This is a fast estimate only.
+const SITE_RATES = {
+  'Basatin': [
+    {re:/kerb/i, rate:11.50, unit:'Lm'},
+    {re:/grut|grout/i, rate:1.50, unit:'Lm'},
+    {re:/taile|tile/i, rate:14.50, unit:'Square'},
+  ],
+  'Innovo': [
+    {re:/kerb/i, rate:9.00, unit:'Lm'},
+    {re:/grut|grout/i, rate:9.00, unit:'Lm'}, // combined kerb+grouting rate
+    {re:/taile|tile/i, rate:10.25, unit:'Square'},
+  ],
+  '597': [
+    {re:/kerb/i, rate:18.50, unit:'Lm'},
+    {re:/grut|grout/i, rate:1.50, unit:'Lm'},
+  ],
+};
+
+function estimateRevenue(site, tasksRaw){
+  if (!tasksRaw) return {revenue:0, matched:true};
+  const rateList = SITE_RATES[site];
+  if (!rateList) return {revenue:0, matched:false};
+  const segments = tasksRaw.split(' ; ');
+  let total = 0; let allMatched = true;
+  segments.forEach(seg=>{
+    const qtyM = seg.match(/=\s*([\d]+(?:\.[\d]+)?)\.?\s*(Lm|Square)/i);
+    if (!qtyM){ allMatched = false; return; }
+    const qty = parseFloat(qtyM[1]);
+    const taskType = seg.slice(0, seg.indexOf('=')).trim();
+    const rateEntry = rateList.find(r=>r.re.test(taskType));
+    if (!rateEntry){ allMatched = false; return; }
+    total += qty * rateEntry.rate;
+  });
+  return {revenue: total, matched: allMatched};
+}
+
+function toISODate(ddmmyyyy){
+  const [d,mo,y] = ddmmyyyy.split('-');
+  return `${y}-${mo}-${d}`;
+}
+// ── LABOR TANK FEED — writes the same parsed data into the shared
+//    tables that the Daily Wage Records dashboard reads from, so pasting
+//    a message here also populates that dashboard automatically. This is
+//    a non-critical side effect: if it fails, it must never block the
+//    main P&L save. ──
+let _tankWorkers = null; let _tankAliasMap = null;
+
+async function _tankLoadWorkers(){
+  if (_tankWorkers) return;
+  _tankWorkers = await sbGet('workers', '?select=name,aliases,category,active&active=eq.true');
+  _tankAliasMap = {};
+  _tankWorkers.forEach(w=>{
+    _tankAliasMap[w.name.toLowerCase()] = w.name;
+    (w.aliases||[]).forEach(a=> _tankAliasMap[a.toLowerCase()] = w.name);
+  });
+}
+function _tankResolveName(raw){
+  const key = raw.trim().toLowerCase();
+  return (_tankAliasMap && _tankAliasMap[key]) || raw.trim();
+}
+async function _tankUpsert(table, rows, onConflict){
+  if (!rows.length) return;
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
+    method:'POST',
+    headers: {
+      'apikey': SB_ANON, 'Authorization': 'Bearer ' + SB_ANON,
+      'Content-Type':'application/json',
+      'Prefer':'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(rows)
+  });
+  if (!r.ok) throw new Error(`Tank upsert ${table} failed: ${r.status} ${await r.text()}`);
+}
+
+async function feedLaborTank(rawMessageText){
+  try {
+    const parsed = parseBillalText(rawMessageText);
+    if (parsed.error){ console.warn('Labor tank: ' + parsed.error); return; }
+    await _tankLoadWorkers();
+    parsed.personRows.forEach(r=> r.worker_name = _tankResolveName(r.worker_name));
+
+    if (parsed.personRows.length){
+      await _tankUpsert('worker_daily_records', parsed.personRows, 'report_date,worker_name,site,work_area');
+    }
+    if (parsed.attendance.length){
+      const attRows = parsed.attendance.map(a=>({
+        report_date: toISODate(a.report_date), total_workforce:a.total_workforce, core_count:a.core_count,
+        daily_wage_count:a.daily_wage_count, absent_names:a.absent_names, raw_message:a.raw_message
+      }));
+      await _tankUpsert('daily_attendance', attRows, 'report_date');
+    }
+    console.log(`Labor tank fed: ${parsed.personRows.length} records, ${parsed.attendance.length} date(s).`);
+  } catch(e){
+    // Never let a tank-feed failure block the main P&L save.
+    console.warn('Labor tank feed failed (non-critical, main save unaffected):', e.message);
+  }
+}
+
+
 async function parseAndSave(){
   const txt = document.getElementById('wai').value.trim();
   if(!txt){ alert('Please paste a WhatsApp message first'); return; }
@@ -3438,6 +3650,9 @@ async function parseAndSave(){
     };
 
     await sbUpsert('daily_pl',[payload]);
+
+    // Feed the shared labor tank (non-critical — see feedLaborTank)
+    await feedLaborTank(txt);
 
     // Save work items — non-critical, don't let it block main save
     if(workItems.length){
