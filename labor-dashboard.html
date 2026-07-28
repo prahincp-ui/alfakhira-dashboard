@@ -562,6 +562,26 @@ async function loadLedger(){
     {k:'paid', tr:true, render:v=>`AED ${v.toLocaleString()}`},
     {k:'balance', tr:true, render:(v)=>v!=null?`<strong style="color:${v>0?'var(--red)':'var(--green)'}">AED ${v.toLocaleString()}</strong>`:'—'},
   ]);
+  renderBalanceTotals(rows);
+}
+
+function renderBalanceTotals(rows){
+  const table = document.getElementById('balanceTable');
+  let tfoot = table.querySelector('tfoot');
+  if (!tfoot){ tfoot = document.createElement('tfoot'); table.appendChild(tfoot); }
+  const totalDays = rows.reduce((s,r)=>s+(r.days||0),0);
+  const totalEarned = rows.reduce((s,r)=>s+(r.earned||0),0);
+  const totalPaid = rows.reduce((s,r)=>s+(r.paid||0),0);
+  const totalBalance = totalEarned - totalPaid;
+  tfoot.innerHTML = `<tr style="border-top:1.5px solid var(--border2)">
+    <td><strong>Total (${rows.length} workers)</strong></td>
+    <td>${totalDays}</td>
+    <td></td>
+    <td class="tr"><strong>AED ${totalEarned.toLocaleString()}</strong></td>
+    <td class="tr">—</td>
+    <td class="tr"><strong>AED ${totalPaid.toLocaleString()}</strong></td>
+    <td class="tr"><strong style="color:${totalBalance>0?'var(--red)':'var(--green)'}">AED ${totalBalance.toLocaleString()}</strong></td>
+  </tr>`;
 }
 
 // ── EFFICIENCY TAB ──
