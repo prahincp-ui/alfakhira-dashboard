@@ -3443,6 +3443,7 @@ async function parseAndSave(){
       const isCycleTrack = lineSite==='basatin' && /cycle[\s\-:_]*track/i.test(currentWorkArea);
       const isSite597 = lineSite==='572' && currentSiteNumber==='597' && workDate >= '2026-07-01';
       const isBorder = lineSite==='basatin' && /border/i.test(sl);
+      const isCyanBeach = lineSite==='basatin' && /\b(sayan|syan)\b/i.test(currentWorkArea) && !/\byas\b/i.test(currentWorkArea);
 
       // ── PRIORITY ORDER: most specific first to avoid wrong matches ──
 
@@ -3476,11 +3477,11 @@ async function parseAndSave(){
       }
       // 7. TILE (not cutpiece, not border)
       else if(sl.match(/taile|tile/)){
-        rate=unit==='m²'?(r.tile||0):0; workType='Tile Laying';
+        rate = isCyanBeach ? 10 : (unit==='m²'?(r.tile||0):0); workType = isCyanBeach ? 'Tile Laying (Cyan Beach)' : 'Tile Laying';
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
-        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (unit==='LM'?(r.kerb||0):0)); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : 'Kerb Fixing');
+        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 10.00 : (isCyanBeach ? 13 : (unit==='LM'?(r.kerb||0):0)))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : (isCyanBeach ? 'Kerb Fixing (Cyan Beach)' : 'Kerb Fixing')));
       }
 
       // Update site for this line's income allocation
