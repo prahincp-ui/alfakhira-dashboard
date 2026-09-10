@@ -3443,7 +3443,7 @@ async function parseAndSave(){
       const isCycleTrack = lineSite==='basatin' && /cycle[\s\-:_]*track/i.test(currentWorkArea);
       const isSite597 = lineSite==='572' && currentSiteNumber==='597' && workDate >= '2026-07-01';
       const isBorder = lineSite==='basatin' && /border/i.test(sl);
-      const isCyanBeach = lineSite==='basatin' && /\b(sayan|syan)\b/i.test(currentWorkArea) && !/\byas\b/i.test(currentWorkArea);
+      const isCyanBeach = lineSite==='basatin' && /\b(sayan|syan|yas)\b/i.test(currentWorkArea);
 
       // ── PRIORITY ORDER: most specific first to avoid wrong matches ──
 
