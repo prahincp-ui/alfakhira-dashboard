@@ -3477,11 +3477,11 @@ async function parseAndSave(){
       }
       // 7. TILE (not cutpiece, not border)
       else if(sl.match(/taile|tile/)){
-        rate = isCyanBeach ? 10 : (unit==='m²'?(r.tile||0):0); workType = isCyanBeach ? 'Tile Laying (Cyan Beach)' : 'Tile Laying';
+        rate = isCyanBeach ? 13 : (unit==='m²'?(r.tile||0):0); workType = isCyanBeach ? 'Tile Laying (Cyan Beach - Interlock)' : 'Tile Laying';
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
-        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 10.00 : (isCyanBeach ? 13 : (unit==='LM'?(r.kerb||0):0)))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : (isCyanBeach ? 'Kerb Fixing (Cyan Beach)' : 'Kerb Fixing')));
+        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 10.00 : (isCyanBeach ? 10 : (unit==='LM'?(r.kerb||0):0)))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : (isCyanBeach ? 'Kerb Fixing (Cyan Beach - Curbstone)' : 'Kerb Fixing')));
       }
 
       // Update site for this line's income allocation
