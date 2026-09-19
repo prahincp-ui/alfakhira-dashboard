@@ -3384,6 +3384,13 @@ async function parseAndSave(){
       if(grpM){
         currentWorkerNames = grpM[1].replace(/\./g,'+').replace(/,/g,'+').trim();
       }
+      // Inline "Work area :X" on the SAME line (current Billal format:
+      // "Workers :Name (nP) Work area :X task...") — capture it here too.
+      const inlineWaM = line.match(/Work\s*[Aa]rea\s*[:=]\s*([^|]+?)(?=\s+(?:Taile|Tile|Kerb|Grutting|Grouting|Rammal|Compoctor|Menteneg)\b|$)/i);
+      if(inlineWaM){
+        const waRaw = inlineWaM[1].trim();
+        currentWorkArea = /^area\s*name$/i.test(waRaw) ? '⚠ Area Name' : waRaw;
+      }
     }
     // OLD/NEW FORMAT: "Project: Site 572, 3P"
     else {
@@ -3481,14 +3488,14 @@ async function parseAndSave(){
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
-        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 10.00 : (isCyanBeach ? 10 : (unit==='LM'?(r.kerb||0):0)))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : (isCyanBeach ? 'Kerb Fixing (Cyan Beach - Curbstone)' : 'Kerb Fixing')));
+        rate = isSite597 ? 18.5 : (isCycleTrack ? 8.50 : (isBorder ? 10.00 : (isCyanBeach ? 8.50 : (unit==='LM'?(r.kerb||0):0)))); workType = isSite597 ? 'Kerb Fixing (Site 597 - Granite Kerbstone)' : (isCycleTrack ? 'Kerb Fixing (Cycle Track)' : (isBorder ? 'Kerb Fixing Border' : (isCyanBeach ? 'Kerb Fixing (Cyan Beach - Curbstone)' : 'Kerb Fixing')));
       }
 
       // Update site for this line's income allocation
       site = lineSite;
 
       const inc = r2(qty*rate);
-      const netInc = lineSite==='572' ? r2(inc*0.95) : (isCycleTrack ? r2(inc*0.895) : inc);
+      const netInc = lineSite==='572' ? r2(inc*0.95) : ((isCycleTrack||isCyanBeach) ? r2(inc*0.895) : inc);
       if(lineSite==='572') { i572=r2(i572+netInc); if(isSite597) i597=r2(i597+netInc); }
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
       else { ibas=r2(ibas+netInc); if(isCycleTrack) ibasCycle=r2(ibasCycle+netInc); }
