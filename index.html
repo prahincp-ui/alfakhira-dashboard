@@ -3379,10 +3379,10 @@ async function parseAndSave(){
       }
     }
     // NEW FORMAT: "Group: Bilal, Singlesh (2P)" or "Workers: Sojol, Don Deu (2P)" or "Worker: Etienne (1P)"
-    else if(/^(?:Group|Workers?|Worker)\s*[:]/i.test(line.trim())){
-      const grpM = line.match(/^(?:Group|Workers?|Worker)\s*[:]\s*([^(\n]+)/i);
+    else if(/^[^A-Za-z0-9]*(?:Group|Workers?|Worker)\b\s*[:.]?/i.test(line.trim())){
+      const grpM = line.trim().replace(/^[^A-Za-z0-9]+/,'').match(/^(?:Group|Workers?|Worker)\b\s*[:.]?\s*([^(\n]+)/i);
       if(grpM){
-        currentWorkerNames = grpM[1].replace(/\./g,'+').replace(/,/g,'+').trim();
+        currentWorkerNames = grpM[1].replace(/\./g,'+').replace(/,/g,'+').trim().replace(/\+$/,'').trim();
       }
       // Inline "Work area :X" on the SAME line (current Billal format:
       // "Workers :Name (nP) Work area :X task...") ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ capture it here too.
