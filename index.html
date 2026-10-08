@@ -3575,8 +3575,54 @@ async function parseAndSave(){
   });
   if(dwSalTotal === 0 && dwn > 0) dwSalTotal = dwn * 104;
 
-  const otCost = r2(totalOT * 3.8);
-  const dwCost = dwSalTotal;
+  // ── DW OVERTIME: per-person, paid at (their own daily rate / 8) per OT hour — NOT the flat core rate, since DW pay is daily-based.
+    let coreOtHours = 0;
+    let dwOtCostActual = 0;
+    const dwOtBreakdown = []; // {name, hrs, dailyRate, otRate, cost, fallback}
+    (function(){
+      let sect = null, names = [], gsz = 1;
+      txt.split('\n').forEach(otLine => {
+        const otSL = otLine.toLowerCase();
+        if(/CORE\s*[-–]\s*\d+P/i.test(otLine)) sect = 'core';
+        else if(/DAILY\s*WAGE\s*[-–]\s*\d+P/i.test(otLine)) sect = 'dw';
+        const gpMatch = otLine.match(/^(\d+)P[\s.]/i) || otLine.match(/\((\d+)P\)/i) || otLine.match(/CORE\s*[-–]\s*(\d+)P/i) || otLine.match(/DAILY\s*WAGE\s*[-–]\s*(\d+)P/i);
+        if(gpMatch) gsz = parseInt(gpMatch[1]) || 1;
+        if(/one\s*person/i.test(otSL)) gsz = 1;
+        if(/^[^A-Za-z0-9]*(?:Group|Workers?|Worker)\b\s*[:.]?/i.test(otLine.trim())){
+          const grpM = otLine.trim().replace(/^[^A-Za-z0-9]+/,'').match(/^(?:Group|Workers?|Worker)\b\s*[:.]?\s*([^(\n]+)/i);
+          if(grpM){
+            const joined = grpM[1].replace(/\./g,'+').replace(/,/g,'+').trim().replace(/\+$/,'').trim();
+            names = joined.split('+').map(n=>n.trim()).filter(Boolean);
+          }
+        }
+        if(/total\s*combined/i.test(otSL)) return;
+        if(/[×x]{2,}/.test(otLine)) return;
+        const otM = otLine.match(/over\s*[Tt]ime\s*[=:\-]\s*([\d.]+)\s*H/i);
+        if(otM){
+          const hrs = parseFloat(otM[1]);
+          if(hrs <= 0) return;
+          const isPerPerson = /per\s*person|one\s*person/i.test(otSL);
+          const groupHrs = isPerPerson ? hrs * gsz : hrs;
+          if(sect === 'dw'){
+            const grpNames = names.length ? names : ['Unknown'];
+            const perPersonHrs = isPerPerson ? hrs : (hrs / (grpNames.length || 1));
+            grpNames.forEach(name => {
+              const key = Object.keys(DW_MAP).find(k => k.toLowerCase() === name.toLowerCase());
+              const dailyRate = key ? DW_MAP[key] : 100;
+              const otRate = r2(dailyRate/8);
+              const cost = r2(otRate * perPersonHrs);
+              dwOtCostActual = r2(dwOtCostActual + cost);
+              dwOtBreakdown.push({name, hrs: perPersonHrs, dailyRate, otRate, cost, fallback: !key});
+            });
+          } else {
+            coreOtHours += groupHrs;
+          }
+        }
+      });
+    })();
+  
+    const otCost = r2(coreOtHours*3.8 + dwOtCostActual);
+    const dwCost = dwSalTotal;
 
   // OVERHEAD RULE 0: Coaster Jan-Mar 2026: +AED 169.23/day net | Jun 8 2026+: +AED 276.92/day (7200÷26)
   // Coaster cost is divided by 26 WORKING DAYS only — so NOT added on holidays/Sundays
