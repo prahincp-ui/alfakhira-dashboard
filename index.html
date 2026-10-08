@@ -3447,7 +3447,7 @@ async function parseAndSave(){
 
       const r = RATES[lineSite]||RATES['572'];
       let rate=0, workType='';
-      const isCycleTrack = lineSite==='basatin' && /cycle[\s\-:_]*track/i.test(currentWorkArea);
+      const isCycleTrack = lineSite==='basatin' && (/cycle[\s\-:_]*track/i.test(currentWorkArea) || /cycle[\s\-:_]*track/i.test(sl));
       const isSite597 = lineSite==='572' && currentSiteNumber==='597' && workDate >= '2026-07-01';
       const isBorder = lineSite==='basatin' && /border/i.test(sl);
       const isCyanBeach = lineSite==='basatin' && /\b(sayan|syan|yas)\b/i.test(currentWorkArea);
@@ -3495,7 +3495,8 @@ async function parseAndSave(){
       site = lineSite;
 
       const inc = r2(qty*rate);
-      const netInc = lineSite==='572' ? r2(inc*0.95) : ((isCycleTrack||isCyanBeach) ? r2(inc*0.895) : inc);
+      const isRetentionEligible = /kerb|grout/i.test(workType);
+      const netInc = lineSite==='572' ? r2(inc*0.95) : (((isCycleTrack||isCyanBeach) && isRetentionEligible) ? r2(inc*0.895) : inc);
       if(lineSite==='572') { i572=r2(i572+netInc); if(isSite597) i597=r2(i597+netInc); }
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
       else { ibas=r2(ibas+netInc); if(isCycleTrack) ibasCycle=r2(ibasCycle+netInc); }
