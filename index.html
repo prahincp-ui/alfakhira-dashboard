@@ -3451,6 +3451,7 @@ async function parseAndSave(){
       const isSite597 = lineSite==='572' && currentSiteNumber==='597' && workDate >= '2026-07-01';
       const isBorder = lineSite==='basatin' && /border/i.test(sl);
       const isCyanBeach = lineSite==='basatin' && /\b(sayan|syan|yas)\b/i.test(currentWorkArea);
+      const isC105 = lineSite==='basatin' && (/\bc[\s\-]*105\b/i.test(currentWorkArea) || /\bc[\s\-]*105\b/i.test(sl));
 
       // ── PRIORITY ORDER: most specific first to avoid wrong matches ──
 
@@ -3484,7 +3485,7 @@ async function parseAndSave(){
       }
       // 7. TILE (not cutpiece, not border)
       else if(sl.match(/taile|tile/)){
-        rate = isCyanBeach ? 13 : (unit==='m²'?(r.tile||0):0); workType = isCyanBeach ? 'Tile Laying (Cyan Beach - Interlock)' : 'Tile Laying';
+        rate = isC105 ? 13 : (isCyanBeach ? 13 : (unit==='m²'?(r.tile||0):0)); workType = isC105 ? 'Tile Laying (C-105)' : (isCyanBeach ? 'Tile Laying (Cyan Beach - Interlock)' : 'Tile Laying');
       }
       // 8. KERB (fixing, roll, round, cutpiece with kerb = kerb cutpiece which IS billable)
       else if(sl.match(/kerb|rool|roll|round|flash/)){
@@ -3496,7 +3497,8 @@ async function parseAndSave(){
 
       const inc = r2(qty*rate);
       const isRetentionEligible = /kerb|grout/i.test(workType);
-      const netInc = lineSite==='572' ? r2(inc*0.95) : (((isCycleTrack||isCyanBeach) && isRetentionEligible) ? r2(inc*0.895) : inc);
+      const isC105RetentionEligible = isC105 && /tile/i.test(workType);
+      const netInc = lineSite==='572' ? r2(inc*0.95) : (isC105RetentionEligible ? r2(inc*0.95) : (((isCycleTrack||isCyanBeach) && isRetentionEligible) ? r2(inc*0.895) : inc));
       if(lineSite==='572') { i572=r2(i572+netInc); if(isSite597) i597=r2(i597+netInc); }
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
       else { ibas=r2(ibas+netInc); if(isCycleTrack) ibasCycle=r2(ibasCycle+netInc); }
