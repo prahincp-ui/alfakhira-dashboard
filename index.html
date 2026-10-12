@@ -3463,9 +3463,19 @@ async function parseAndSave(){
       else if(sl.match(/grutt|grout/)){
         rate = isSite597 ? 1.5 : (r.grouting||0); workType = isSite597 ? 'Grouting (Site 597 - Granite Kerbstone)' : 'Grouting';
       }
-      // 2. TILE CUTPIECE — taile+cutpece combination
-      else if(sl.match(/taile.*cutpece|tile.*cutpiece|cutpece.*taile|cutpiece.*tile/)){
-        rate=0; workType='Tile Cutpiece (finishing-no income)';
+      // 2. TILE CUTPIECE combo — taile+cutpece combination
+      // Only zero-income when cutpiece is declared as the line's TYPE before the '=' quantity (e.g. "Taile cutpece =30.Lm").
+      // When a real tile quantity is already stated and cutpiece is just a trailing note after it
+      // (e.g. "...=12.5 Square m+cutpece"), bill the tile normally instead of zeroing it.
+      else if((function(){
+        const eqPos = sl.indexOf('=');
+        const cutMatch = sl.match(/cutpece|cutpiece/);
+        const hasTileWord = /taile|tile/.test(sl);
+        if(!cutMatch || !hasTileWord) return false;
+        const cutPos = cutMatch.index;
+        return eqPos < 0 || cutPos < eqPos;
+      })()){
+        rate = 0; workType = 'Tile Cutpiece (finishing-no income)';
       }
       // 3. Standalone cutpece without kerb or grout = tile cutpiece
       else if(sl.match(/cutpece|cutpiece/) && !sl.match(/kerb/) && !sl.match(/grutt|grout/)){
