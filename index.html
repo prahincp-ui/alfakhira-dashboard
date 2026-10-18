@@ -3491,7 +3491,7 @@ async function parseAndSave(){
       }
       // 6. BORDER — unified: Basatin border (any phrasing, kerb or tile) = AED 10.00/LM; other sites use standard tile_border rate
       else if(sl.match(/border/)){
-        rate = lineSite==='basatin' ? 10.00 : (r.tile_border||0); workType = 'Tile Border';
+        rate = (lineSite==='basatin' || lineSite==='572') ? 10.00 : (r.tile_border||0); workType = 'Tile Border';
       }
       // 7. TILE (not cutpiece, not border)
       else if(sl.match(/taile|tile/)){
