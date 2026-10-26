@@ -3508,7 +3508,7 @@ async function parseAndSave(){
       const inc = r2(qty*rate);
       const isRetentionEligible = /kerb|grout/i.test(workType);
       const isC105RetentionEligible = isC105 && /tile/i.test(workType);
-      const netInc = lineSite==='572' ? r2(inc*0.95) : (isC105RetentionEligible ? r2(inc*0.95) : (((isCycleTrack||isCyanBeach) && isRetentionEligible) ? r2(inc*0.895) : inc));
+      const netInc = lineSite==='572' ? r2(inc*0.95) : (isC105RetentionEligible ? r2(inc*0.95) : (((isCycleTrack||isCyanBeach) && isRetentionEligible) ? r2(inc*0.95) : inc));
       if(lineSite==='572') { i572=r2(i572+netInc); if(isSite597) i597=r2(i597+netInc); }
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
       else { ibas=r2(ibas+netInc); if(isCycleTrack) ibasCycle=r2(ibasCycle+netInc); }
