@@ -3493,6 +3493,10 @@ async function parseAndSave(){
       else if(sl.match(/border/)){
         rate = (lineSite==='basatin' || lineSite==='572') ? 10.00 : (r.tile_border||0); workType = 'Tile Border';
       }
+      // 6b. TILE REMOVAL — AED 7.00/m², no retention (not laying)
+      else if(sl.match(/remov/) && sl.match(/taile|tile/)){
+        rate = 7.00; workType = isC105 ? 'Tile Remove (C-105)' : 'Tile Remove';
+      }
       // 7. TILE (not cutpiece, not border)
       else if(sl.match(/taile|tile/)){
         rate = isC105 ? 13 : (isCyanBeach ? 13 : (unit==='m²'?(r.tile||0):0)); workType = isC105 ? 'Tile Laying (C-105)' : (isCyanBeach ? 'Tile Laying (Cyan Beach - Interlock)' : 'Tile Laying');
@@ -3507,7 +3511,7 @@ async function parseAndSave(){
 
       const inc = r2(qty*rate);
       const isRetentionEligible = /kerb|grout/i.test(workType);
-      const isC105RetentionEligible = isC105 && /tile/i.test(workType);
+      const isC105RetentionEligible = isC105 && /tile/i.test(workType) && !/remove/i.test(workType);
       const netInc = lineSite==='572' ? r2(inc*0.95) : (isC105RetentionEligible ? r2(inc*0.95) : (((isCycleTrack||isCyanBeach) && isRetentionEligible) ? r2(inc*0.95) : inc));
       if(lineSite==='572') { i572=r2(i572+netInc); if(isSite597) i597=r2(i597+netInc); }
       else if(lineSite==='innovo') iinn=r2(iinn+inc);
